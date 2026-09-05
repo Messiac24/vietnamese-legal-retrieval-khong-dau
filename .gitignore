@@ -1,0 +1,24 @@
+# Dữ liệu và chỉ mục: nặng, tải lại được từ HuggingFace
+data/
+runs/
+
+# Kết quả chạy KHÔNG bị bỏ qua: reports/ là nguồn số liệu cho slide và báo cáo
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Node
+node_modules/
+
+# Tệp khoá tạm của Word và PowerPoint
+~$*.docx
+~$*.pptx
+~$*.xlsx
+
+# Môi trường
+.venv/
+.env
