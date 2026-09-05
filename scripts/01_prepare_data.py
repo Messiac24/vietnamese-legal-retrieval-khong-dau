@@ -108,6 +108,12 @@ def main() -> None:
               f"  |  vắt qua nhiều văn bản: {int((van_ban_moi_nhom > 1).sum())}")
     _ghi(trung, "duplicate_articles.csv")
 
+    doc_trung = audit.duplicate_docs_by_diacritics(arts)
+    print(f"    văn bản bị tách đôi vì khác dấu tiếng Việt: "
+          f"{doc_trung['khoa_bo_dau'].nunique() if len(doc_trung) else 0} nhóm, "
+          f"{len(doc_trung)} mã văn bản, {int(doc_trung['so_dieu'].sum()) if len(doc_trung) else 0} điều")
+    _ghi(doc_trung, "duplicate_docs_diacritics.csv")
+
     ngram_df = pd.DataFrame({
         "article_id": arts["article_id"],
         "tokens": [sorted(textnorm.ngrams(t, config.SIMHASH_NGRAM))

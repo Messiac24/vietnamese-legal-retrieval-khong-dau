@@ -144,14 +144,33 @@ def main() -> None:
                     h["cau_hoi"],
                     " ".join(f"{tieu_de.get(a, '')} {van_ban.get(a, '')}"
                              for a in str(h["gold"]).split()), idf)),
-            "nguyen_nhan": "",
         })
     df_sai = pd.DataFrame(hang)
+
+    # Nhãn nguyên nhân do người đọc tay, giữ ở tệp NGUỒN docs/nhan_loi_doc_tay.csv
+    # chứ không gõ thẳng vào tệp này. Gõ vào đây thì lần chạy sau mất sạch.
+    nhan_path = config.ROOT / "docs" / "nhan_loi_doc_tay.csv"
+    if nhan_path.exists():
+        nhan = pd.read_csv(nhan_path, encoding="utf-8-sig")
+        df_sai = df_sai.merge(nhan[["query_id", "nguyen_nhan", "ghi_chu"]],
+                              on="query_id", how="left")
+        thieu = int(df_sai["nguyen_nhan"].isna().sum())
+        print(f"    ghép nhãn đọc tay từ {nhan_path.name}"
+              f"{f', còn {thieu} ca chưa gán' if thieu else ', đủ mọi ca'}")
+    else:
+        df_sai["nguyen_nhan"] = ""
+        df_sai["ghi_chu"] = ""
+        print("    chưa có docs/nhan_loi_doc_tay.csv, cột nguyen_nhan để trống")
+
     df_sai.to_csv(config.EVAL_DIR / "error_taxonomy.csv", **config.CSV_KW)
-    print(f"    -> reports/eval/error_taxonomy.csv ({len(df_sai)} ca, "
-          f"cột nguyen_nhan để trống chờ đọc tay)")
-    print("    Các loại nguyên nhân dùng để điền: sai_gold, thieu_ngu_canh, "
-          "nhieu_dieu_dung, cau_hoi_mo_ho, dieu_qua_dai, khac")
+    print(f"    -> reports/eval/error_taxonomy.csv ({len(df_sai)} ca)")
+    if df_sai["nguyen_nhan"].notna().any():
+        tong_hop = (df_sai["nguyen_nhan"].value_counts().rename_axis("nguyen_nhan")
+                    .reset_index(name="so_ca"))
+        tong_hop["ty_le_pct"] = (100 * tong_hop["so_ca"] / len(df_sai)).round(1)
+        tong_hop.to_csv(config.EVAL_DIR / "error_summary.csv", **config.CSV_KW)
+        print(tong_hop.to_string(index=False))
+        print("    -> reports/eval/error_summary.csv")
 
     print("\nNăm ca sai đầu tiên:")
     for _, h in df_sai.head(5).iterrows():

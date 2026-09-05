@@ -119,3 +119,15 @@ def test_near_duplicate_pairs_bo_qua_bang_qua_lon():
     cap = audit.near_duplicate_pairs(df, threshold=3, max_bucket=5)
     assert cap == []
     assert audit.near_duplicate_pairs.bo_qua > 0
+
+
+def test_duplicate_docs_by_diacritics_bat_dung_cap():
+    df = pd.DataFrame({"doc_id": ["155/2020/nd-cp", "155/2020/nđ-cp", "01/2009/tt-bnn"]})
+    kq = audit.duplicate_docs_by_diacritics(df)
+    assert set(kq["doc_id"]) == {"155/2020/nd-cp", "155/2020/nđ-cp"}
+    assert kq["khoa_bo_dau"].nunique() == 1
+
+
+def test_duplicate_docs_by_diacritics_khong_co_thi_rong():
+    df = pd.DataFrame({"doc_id": ["a/1", "b/2"]})
+    assert len(audit.duplicate_docs_by_diacritics(df)) == 0

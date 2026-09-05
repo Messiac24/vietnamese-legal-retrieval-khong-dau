@@ -1,0 +1,4 @@
+﻿tap,so_query,giao_voi_val,giao_voi_test
+train,1925,0,0
+val,481,481,0
+test,788,0,788

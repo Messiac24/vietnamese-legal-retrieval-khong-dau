@@ -11,6 +11,7 @@ Ba mức trùng lặp cần ba công cụ khác nhau:
     trùng ở mức câu hỏi      hai câu hỏi diễn đạt khác nhau      Jaccard n-gram
 """
 import hashlib
+import unicodedata
 from collections import defaultdict
 
 import pandas as pd
@@ -180,3 +181,32 @@ def near_duplicate_queries(
             if j >= nguong:
                 ket.append((qid, khac, round(j, 4)))
     return pd.DataFrame(ket, columns=["query_id", "query_id_doi_chieu", "jaccard"])
+
+
+def _bo_dau(s: str) -> str:
+    """Bỏ toàn bộ dấu tiếng Việt, kể cả chữ đ."""
+    s = unicodedata.normalize("NFD", s)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    return s.replace("đ", "d").replace("Đ", "D")
+
+
+def duplicate_docs_by_diacritics(df: pd.DataFrame) -> pd.DataFrame:
+    """Các văn bản bị tách đôi chỉ vì khác dấu tiếng Việt trong số hiệu.
+
+    Ví dụ thật trong kho: `155/2020/nd-cp` và `155/2020/nđ-cp` là cùng một Nghị
+    định nhưng nằm dưới hai mã, mỗi mã đủ 310 điều. Nếu không phát hiện, hệ trả
+    về bản này còn nhãn ghi bản kia thì bị chấm sai oan.
+
+    `df` cần cột `doc_id`.
+    """
+    nhom: dict[str, list[str]] = defaultdict(list)
+    for d in sorted(df["doc_id"].unique()):
+        nhom[_bo_dau(d)].append(d)
+    dem = df.groupby("doc_id").size().to_dict()
+    hang = []
+    for khoa, ds in nhom.items():
+        if len(ds) < 2:
+            continue
+        for d in ds:
+            hang.append({"khoa_bo_dau": khoa, "doc_id": d, "so_dieu": dem.get(d, 0)})
+    return pd.DataFrame(hang, columns=["khoa_bo_dau", "doc_id", "so_dieu"])
