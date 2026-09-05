@@ -104,10 +104,17 @@ class DenseIndex:
         return [textnorm.segment(t) for t in texts] if self.need_segment else texts
 
     def encode_corpus(self, chunk_ids: list[str], texts: list[str],
-                      batch_size: int = 256) -> None:
+                      batch_size: int = 256,
+                      already_segmented: bool = False) -> None:
+        """Mã hóa cả kho đoạn.
+
+        `already_segmented` cho phép phía gọi truyền vào văn bản đã tách từ sẵn.
+        Tách từ 150k đoạn mất hơn 3 phút, mà cả bkai gốc lẫn bkai đã fine-tune
+        đều cần đúng bộ đoạn đã tách đó, nên tách lại lần hai là phí.
+        """
         model = self._load_model()
         vec = model.encode(
-            self._prepare(texts),
+            texts if already_segmented else self._prepare(texts),
             batch_size=batch_size,
             convert_to_numpy=True,
             normalize_embeddings=True,
