@@ -14,6 +14,7 @@ dense sai" và ô "BM25 sai, dense đúng" đều lớn thì hai hướng thật
 việc hợp nhất có cơ sở. Nếu một ô gần bằng không thì một tầng chỉ là tập con của
 tầng kia, và phải nói thẳng ra như vậy.
 """
+import json
 import sys
 from pathlib import Path
 
@@ -64,13 +65,21 @@ def main() -> None:
     print("BƯỚC 6: PHÂN TÍCH LỖI")
     print("=" * 70)
 
+    chon_path = config.EVAL_DIR / "best_system.json"
+    if not chon_path.exists():
+        raise SystemExit(
+            "Chưa có reports/eval/best_system.json. Chạy lại scripts/05_evaluate.py"
+        )
+    chon = json.loads(chon_path.read_text(encoding="utf-8"))
+
     pq = pd.read_csv(duong_dan, encoding="utf-8-sig")
-    cot_dung = [c for c in pq.columns if c.startswith("dung@10::")]
     cot_bm = "dung@10::BM25"
-    cot_de = next((c for c in cot_dung if c.startswith("dung@10::Dense")), None)
-    if cot_de is None:
-        raise SystemExit("Không tìm thấy cột kết quả của tầng ngữ nghĩa.")
+    cot_de = chon["cot_dense_sach"]
+    if cot_de not in pq.columns:
+        raise SystemExit(f"Không có cột {cot_de} trong per_query_test.csv")
     print(f"So sánh: {cot_bm}  và  {cot_de}")
+    print("Dùng mô hình ngữ nghĩa SẠCH. So với mô hình đã thấy dữ liệu này khi\n"
+          "huấn luyện thì bảng bốn ô cũng nhiễm theo.")
 
     bm = pq[cot_bm].astype(bool)
     de = pq[cot_de].astype(bool)
@@ -104,8 +113,7 @@ def main() -> None:
     print("    -> reports/eval/crossover_examples.csv")
 
     # ---------- Ca sai của hệ tốt nhất ----------
-    mc = pd.read_csv(config.EVAL_DIR / "model_comparison.csv", encoding="utf-8-sig")
-    tot_nhat = mc.sort_values("recall@10", ascending=False).iloc[0]["he_thong"]
+    tot_nhat = chon["he_sach_tot_nhat"]
     cot_tot = f"dung@10::{tot_nhat}"
     sai = pq[~pq[cot_tot].astype(bool)]
     print(f"\nHệ tốt nhất: {tot_nhat}  |  sai {len(sai)} / {len(pq)} câu hỏi")

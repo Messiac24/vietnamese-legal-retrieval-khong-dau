@@ -1,0 +1,6 @@
+{
+  "he_sach_tot_nhat": "Trọng số (BM25 + aiteam)",
+  "he_diem_cao_nhat": "RRF (BM25 + bkai_ft)",
+  "dense_sach": "aiteam",
+  "cot_dense_sach": "dung@10::Dense aiteam"
+}

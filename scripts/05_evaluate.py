@@ -110,20 +110,28 @@ def main() -> None:
         del idx
 
     # ---------- Hợp nhất ----------
-    chinh = "bkai_ft" if "bkai_ft" in de_runs else ts["dense"]["mo_hinh"]
-    goc = ts["dense"]["mo_hinh"]
-    he_thong: dict[str, dict] = {
-        "BM25": bm_runs,
-        **{f"Dense {t}": r for t, r in de_runs.items()},
-    }
-    if goc in de_runs:
-        he_thong[f"RRF (BM25 + {goc})"] = pipeline.hop_nhat_rrf(
-            bm_runs, de_runs[goc], ts["rrf"]["rrf_k"], config.TOPK_FUSION)
-        he_thong[f"Trọng số (BM25 + {goc})"] = pipeline.hop_nhat_alpha(
-            bm_runs, de_runs[goc], ts["weighted"]["alpha"], config.TOPK_FUSION)
-    if chinh != goc and chinh in de_runs:
-        he_thong[f"Trọng số (BM25 + {chinh})"] = pipeline.hop_nhat_alpha(
-            bm_runs, de_runs[chinh], ts["weighted"]["alpha"], config.TOPK_FUSION)
+    sach = ts["dense"]["mo_hinh"]
+    he_thong: dict[str, dict] = {"BM25": bm_runs}
+    for t, r in de_runs.items():
+        he_thong[f"Dense {t}"] = r
+    if sach in de_runs:
+        he_thong[f"RRF (BM25 + {sach})"] = pipeline.hop_nhat_rrf(
+            bm_runs, de_runs[sach], ts["rrf"]["rrf_k"], config.TOPK_FUSION)
+        he_thong[f"Trọng số (BM25 + {sach})"] = pipeline.hop_nhat_alpha(
+            bm_runs, de_runs[sach], ts["weighted"]["alpha"], config.TOPK_FUSION)
+    ban = ts.get("dense_nhiem_ban", {}).get("mo_hinh")
+    if ban and ban in de_runs:
+        he_thong[f"RRF (BM25 + {ban})"] = pipeline.hop_nhat_rrf(
+            bm_runs, de_runs[ban], ts["rrf_nhiem_ban"]["rrf_k"], config.TOPK_FUSION)
+        he_thong[f"Trọng số (BM25 + {ban})"] = pipeline.hop_nhat_alpha(
+            bm_runs, de_runs[ban], ts["weighted_nhiem_ban"]["alpha"],
+            config.TOPK_FUSION)
+
+    def _nhan_nhiem_ban(ten_he: str) -> str:
+        for m, ghi_chu in config.NHIEM_BAN.items():
+            if ghi_chu and (ten_he.endswith(m) or ten_he.endswith(f"{m})")):
+                return ghi_chu
+        return ""
 
     # ---------- Bảng kết quả ----------
     print("\n[3] Bảng kết quả trên test")
@@ -155,10 +163,11 @@ def main() -> None:
                                                         round(tre_de[m][1], 1))
             d["chi_muc_mb"] = chi_phi.get(m)
         else:
-            m = chinh if chinh in ten else goc
+            m = next((x for x in de_runs if ten.endswith(f"{x})")), sach)
             d["latency_p50_ms"] = round(tre_bm[0] + tre_de.get(m, (0, 0))[0], 1)
             d["latency_p95_ms"] = round(tre_bm[1] + tre_de.get(m, (0, 0))[1], 1)
             d["chi_muc_mb"] = round((chi_phi.get("bm25") or 0) + (chi_phi.get(m) or 0), 1)
+        d["nhiem_ban"] = _nhan_nhiem_ban(ten)
         hang.append(d)
     bang = pd.DataFrame(hang)
     bang.to_csv(config.EVAL_DIR / "model_comparison.csv", **config.CSV_KW)
@@ -180,8 +189,14 @@ def main() -> None:
 
     # ---------- Kết quả từng câu hỏi ----------
     tieu_de = dict(zip(arts["article_id"], arts["title"]))
-    tot_nhat = bang.sort_values("recall@10", ascending=False).iloc[0]["he_thong"]
-    print(f"\n[5] Hệ tốt nhất theo recall@10: {tot_nhat}")
+    # Hệ tốt nhất để phân tích lỗi phải là hệ SẠCH. Chọn hệ nhiễm bẩn thì phần
+    # phân tích lỗi cũng bị nhiễm theo.
+    chi_sach = bang[bang["nhiem_ban"] == ""]
+    tot_nhat = chi_sach.sort_values("recall@10", ascending=False).iloc[0]["he_thong"]
+    cao_nhat = bang.sort_values("recall@10", ascending=False).iloc[0]["he_thong"]
+    print(f"\n[5] Hệ sạch tốt nhất theo recall@10: {tot_nhat}")
+    if cao_nhat != tot_nhat:
+        print(f"    (điểm cao nhất bảng là {cao_nhat}, nhưng nhiễm bẩn)")
     hang = []
     for q in ids:
         d = {"query_id": q, "cau_hoi": text[q],
@@ -195,6 +210,18 @@ def main() -> None:
     pd.DataFrame(hang).to_csv(config.EVAL_DIR / "per_query_test.csv", **config.CSV_KW)
     print(f"    -> reports/eval/per_query_test.csv")
 
+    # Ghi lại lựa chọn để bước 6 dùng đúng hệ này, không tự chọn lại. Bản đầu
+    # tiên để bước 6 tự chọn theo điểm cao nhất, nên nó lọc ca sai theo một hệ
+    # còn cột top10 lại của hệ khác, ra bảng mâu thuẫn.
+    (config.EVAL_DIR / "best_system.json").write_text(
+        json.dumps({"he_sach_tot_nhat": tot_nhat,
+                    "he_diem_cao_nhat": cao_nhat,
+                    "dense_sach": sach,
+                    "cot_dense_sach": f"dung@10::Dense {sach}"},
+                   ensure_ascii=False, indent=2),
+        encoding="utf-8")
+    print("    -> reports/eval/best_system.json")
+
     # ---------- Biểu đồ ----------
     ve_recall(bang)
     ve_alpha()
@@ -207,12 +234,17 @@ def ve_recall(bang: pd.DataFrame) -> None:
     rong = 0.8 / len(bang)
     x = np.arange(len(ks))
     for i, (_, h) in enumerate(bang.iterrows()):
+        ban = bool(h.get("nhiem_ban"))
         ax.bar(x + i * rong, [h[f"recall@{k}"] for k in ks], rong,
-               label=h["he_thong"])
+               label=h["he_thong"] + (" (nhiễm bẩn)" if ban else ""),
+               hatch="//" if ban else None,
+               alpha=0.55 if ban else 1.0)
     ax.set_xticks(x + 0.4 - rong / 2)
     ax.set_xticklabels([f"Recall@{k}" for k in ks])
     ax.set_ylabel("Recall")
-    ax.set_title("Recall trên tập test, 788 câu hỏi, gold gốc")
+    ax.set_title("Recall trên tập test, 788 câu hỏi, gold gốc.\n"
+                 "Cột gạch chéo dùng mô hình đã thấy dữ liệu này khi huấn luyện.",
+                 fontsize=11)
     ax.legend(fontsize=8)
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()

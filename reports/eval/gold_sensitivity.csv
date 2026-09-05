@@ -1,0 +1,9 @@
+﻿he_thong,recall@10_gold_goc,recall@10_gold_mo_rong,chenh_lech
+BM25,0.8522,0.8528,0.0006
+Dense bkai,0.9746,0.9746,0.0
+Dense aiteam,0.9721,0.9721,0.0
+Dense bkai_ft,0.9784,0.9784,0.0
+RRF (BM25 + aiteam),0.967,0.967,0.0
+Trọng số (BM25 + aiteam),0.9772,0.9772,0.0
+RRF (BM25 + bkai_ft),0.986,0.986,0.0
+Trọng số (BM25 + bkai_ft),0.986,0.986,0.0

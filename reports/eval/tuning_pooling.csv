@@ -1,0 +1,7 @@
+﻿mo_hinh,gop_doan,recall@10,giay,nhiem_ban
+bkai_ft,max,0.9782,0.5,"Kế thừa nhiễm bẩn của bkai, cộng thêm fine-tune của nhóm"
+bkai,max,0.9699,0.5,Huấn luyện trên 80% tập train Zalo 2021 (theo model card)
+aiteam,max,0.9563,0.5,
+bkai_ft,mean,0.9449,0.4,"Kế thừa nhiễm bẩn của bkai, cộng thêm fine-tune của nhóm"
+bkai,mean,0.9397,0.4,Huấn luyện trên 80% tập train Zalo 2021 (theo model card)
+aiteam,mean,0.9127,0.6,

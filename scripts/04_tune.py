@@ -88,16 +88,34 @@ def quet_pooling(gold, text) -> tuple[dict, pd.DataFrame, dict]:
             "Chưa có chỉ mục vector nào. Chạy trước:\n"
             "    C:/Python314/python.exe scripts/02_build_index.py --model all"
         )
-    df = _ghi(pd.DataFrame(hang).sort_values(f"recall@{K}", ascending=False),
-              "tuning_pooling.csv")
-    tot = df.iloc[0]
-    print(f"    chọn {tot['mo_hinh']} + gộp {tot['gop_doan']}")
+    df = pd.DataFrame(hang)
+    df["nhiem_ban"] = df["mo_hinh"].map(lambda m: config.NHIEM_BAN.get(m, ""))
+    df = _ghi(df.sort_values(f"recall@{K}", ascending=False), "tuning_pooling.csv")
+
+    # Mô hình cho cấu hình CHÍNH THỨC phải là mô hình sạch. bkai được huấn luyện
+    # trên 80% tập train Zalo 2021, mà tập test của đồ án lại cắt ra từ đúng tập
+    # đó, nên điểm của nó không đo được năng lực trên dữ liệu chưa từng thấy.
+    sach = df[df["mo_hinh"].isin(config.MO_HINH_SACH)]
+    if sach.empty:
+        raise SystemExit(
+            "Không có mô hình sạch nào. Chạy trước:\n"
+            "    C:/Python314/python.exe scripts/02_build_index.py --model aiteam"
+        )
+    tot = sach.iloc[0]
+    ban = df.iloc[0]
+    print(f"    chọn cho cấu hình CHÍNH THỨC: {tot['mo_hinh']} + gộp "
+          f"{tot['gop_doan']} (recall@{K}={tot[f'recall@{K}']:.4f})")
+    if ban["mo_hinh"] != tot["mo_hinh"]:
+        print(f"    điểm cao nhất là {ban['mo_hinh']} {ban[f'recall@{K}']:.4f}, "
+              f"nhưng nhiễm bẩn: {config.NHIEM_BAN[ban['mo_hinh']]}")
     return ({"mo_hinh": tot["mo_hinh"], "gop_doan": tot["gop_doan"]},
+            {"mo_hinh": ban["mo_hinh"], "gop_doan": ban["gop_doan"]},
             df, runs_theo_mo_hinh)
 
 
-def quet_hop_nhat(bm_runs, de_runs, gold) -> tuple[dict, dict]:
-    print("\n[3/4] Quét hằng số k của RRF")
+def quet_hop_nhat(bm_runs, de_runs, gold, hau_to: str = "") -> tuple[dict, dict]:
+    nhan = f"  [cặp {hau_to.strip('_')}]" if hau_to else ""
+    print(f"\n[3/4] Quét hằng số k của RRF{nhan}")
     hang = []
     for k in config.RRF_K_GRID:
         runs = pipeline.hop_nhat_rrf(bm_runs, de_runs, k, config.TOPK_FUSION)
@@ -105,9 +123,9 @@ def quet_hop_nhat(bm_runs, de_runs, gold) -> tuple[dict, dict]:
         hang.append({"rrf_k": k, f"recall@{K}": round(r, 4)})
         print(f"    k={k:<4} recall@{K}={r:.4f}")
     df_rrf = _ghi(pd.DataFrame(hang).sort_values(f"recall@{K}", ascending=False),
-                  "tuning_rrf.csv")
+                  f"tuning_rrf{hau_to}.csv")
 
-    print("\n[4/4] Quét trọng số alpha")
+    print(f"\n[4/4] Quét trọng số alpha{nhan}")
     hang = []
     for a in config.ALPHA_GRID:
         runs = pipeline.hop_nhat_alpha(bm_runs, de_runs, a, config.TOPK_FUSION)
@@ -116,7 +134,7 @@ def quet_hop_nhat(bm_runs, de_runs, gold) -> tuple[dict, dict]:
     df_a = pd.DataFrame(hang)
     for _, h in df_a.iterrows():
         print(f"    alpha={h['alpha']:<5} recall@{K}={h[f'recall@{K}']:.4f}")
-    _ghi(df_a, "tuning_alpha.csv")
+    _ghi(df_a, f"tuning_alpha{hau_to}.csv")
 
     tot_rrf = df_rrf.iloc[0]
     tot_a = df_a.sort_values(f"recall@{K}", ascending=False).iloc[0]
@@ -151,9 +169,8 @@ def main() -> None:
     bm_runs = {q: idx_bm.search_tokens(tk, config.TOPK_FUSION)
                for q, tk in toks.items()}
 
-    tham_so_dense, _, runs_theo = quet_pooling(gold, text)
-    de_runs = runs_theo[(tham_so_dense["mo_hinh"], tham_so_dense["gop_doan"])]
-
+    dense_sach, dense_ban, _, runs_theo = quet_pooling(gold, text)
+    de_runs = runs_theo[(dense_sach["mo_hinh"], dense_sach["gop_doan"])]
     rrf, alpha = quet_hop_nhat(bm_runs, de_runs, gold)
 
     chon = {
@@ -161,11 +178,18 @@ def main() -> None:
         "so_cau_hoi_val": len(gold),
         "chi_so_chon": f"recall@{K}",
         "bm25": tham_so_bm25,
-        "dense": tham_so_dense,
+        "dense": dense_sach,
         "rrf": rrf,
         "weighted": alpha,
         "top_k_hop_nhat": config.TOPK_FUSION,
+        "ghi_chu_nhiem_ban": config.NHIEM_BAN,
     }
+    if dense_ban["mo_hinh"] != dense_sach["mo_hinh"]:
+        de_ban = runs_theo[(dense_ban["mo_hinh"], dense_ban["gop_doan"])]
+        rrf_b, alpha_b = quet_hop_nhat(bm_runs, de_ban, gold, hau_to="_nhiem_ban")
+        chon["dense_nhiem_ban"] = dense_ban
+        chon["rrf_nhiem_ban"] = rrf_b
+        chon["weighted_nhiem_ban"] = alpha_b
     print("\nCấu hình chốt lại:")
     pipeline.luu_tham_so(chon)
     print(f"Tổng thời gian: {(time.perf_counter() - t0) / 60:.1f} phút")

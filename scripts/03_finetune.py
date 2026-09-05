@@ -9,7 +9,7 @@ Sinh ra:
     runs/bkai_ft/train_config.json       cấu hình thật đã chạy
     reports/audit/finetune_data_check.csv  bằng chứng không rò rỉ val và test
 
-Hàm mất mát là MultipleNegativesRankingLoss: trong mỗi lô, đoạn dương của câu
+Hàm mất mát là CachedMultipleNegativesRankingLoss: trong mỗi lô, đoạn dương của câu
 hỏi này chính là đoạn âm của câu hỏi khác. Nhờ vậy một lô 32 câu hỏi cho ra 32
 bài toán phân biệt 1 đúng trên 32 lựa chọn mà không cần gán nhãn thêm. Thêm 4
 đoạn âm khó lấy từ BM25 để mô hình phải phân biệt những điều luật trông giống
@@ -148,7 +148,12 @@ def main() -> None:
     ds = Dataset.from_dict(cot)
     model = SentenceTransformer(config.BKAI_MODEL, device="cuda")
     model.max_seq_length = config.BKAI_MAX_LEN
-    loss = losses.MultipleNegativesRankingLoss(model)
+    # Dùng bản Cached: batch 32 với 6 chuỗi mỗi mẫu làm tràn 16 GB VRAM.
+    # Bản Cached chia thành lô nhỏ rồi ghép gradient lại, nên số âm trong lô
+    # vẫn là 32 mà bộ nhớ chỉ bằng một lô nhỏ.
+    loss = losses.CachedMultipleNegativesRankingLoss(
+        model, mini_batch_size=config.FT_MINI_BATCH
+    )
 
     dau_ra = config.BKAI_FT_DIR
     args = SentenceTransformerTrainingArguments(
@@ -181,6 +186,7 @@ def main() -> None:
             "batch": config.FT_BATCH,
             "learning_rate": config.FT_LR,
             "warmup_ratio": config.FT_WARMUP_RATIO,
+            "mini_batch": config.FT_MINI_BATCH,
             "seed": config.SEED,
             "train_loss_cuoi": round(float(ket_qua.training_loss), 5),
             "thoi_gian_phut": round((time.perf_counter() - t0) / 60, 1),

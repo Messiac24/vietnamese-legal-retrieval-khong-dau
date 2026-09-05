@@ -1,0 +1,39 @@
+{
+  "do_tren": "val",
+  "so_cau_hoi_val": 481,
+  "chi_so_chon": "recall@10",
+  "bm25": {
+    "k1": 0.6,
+    "b": 0.9
+  },
+  "dense": {
+    "mo_hinh": "aiteam",
+    "gop_doan": "max"
+  },
+  "rrf": {
+    "rrf_k": 10,
+    "recall@10": 0.9397
+  },
+  "weighted": {
+    "alpha": 0.75,
+    "recall@10": 0.9563
+  },
+  "top_k_hop_nhat": 100,
+  "ghi_chu_nhiem_ban": {
+    "bkai": "Huấn luyện trên 80% tập train Zalo 2021 (theo model card)",
+    "bkai_ft": "Kế thừa nhiễm bẩn của bkai, cộng thêm fine-tune của nhóm",
+    "aiteam": ""
+  },
+  "dense_nhiem_ban": {
+    "mo_hinh": "bkai_ft",
+    "gop_doan": "max"
+  },
+  "rrf_nhiem_ban": {
+    "rrf_k": 10,
+    "recall@10": 0.9802
+  },
+  "weighted_nhiem_ban": {
+    "alpha": 0.7,
+    "recall@10": 0.9813
+  }
+}

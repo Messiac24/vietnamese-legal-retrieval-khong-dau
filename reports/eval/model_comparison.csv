@@ -1,0 +1,9 @@
+﻿he_thong,recall@1,recall@5,recall@10,recall@20,mrr@10,ndcg@10,f2@10,latency_p50_ms,latency_p95_ms,chi_muc_mb,nhiem_ban
+BM25,0.474,0.7766,0.8522,0.9067,0.6025,0.6625,0.3052,0.5,1.8,35.1,
+Dense bkai,0.8204,0.9645,0.9746,0.9784,0.8865,0.9082,0.3491,260.1,298.7,240.5,Huấn luyện trên 80% tập train Zalo 2021 (theo model card)
+Dense aiteam,0.7811,0.9524,0.9721,0.9835,0.8595,0.8869,0.3482,344.1,352.2,319.4,
+Dense bkai_ft,0.8141,0.9657,0.9784,0.9835,0.8841,0.9073,0.3504,259.6,266.4,240.5,"Kế thừa nhiễm bẩn của bkai, cộng thêm fine-tune của nhóm"
+RRF (BM25 + aiteam),0.6701,0.9346,0.967,0.9797,0.7894,0.833,0.3464,344.6,354.0,354.5,
+Trọng số (BM25 + aiteam),0.7824,0.9537,0.9772,0.9835,0.8619,0.89,0.35,344.6,354.0,354.5,
+RRF (BM25 + bkai_ft),0.7665,0.9645,0.986,0.9873,0.8554,0.8874,0.3532,260.1,268.2,275.6,"Kế thừa nhiễm bẩn của bkai, cộng thêm fine-tune của nhóm"
+Trọng số (BM25 + bkai_ft),0.8452,0.9797,0.986,0.9873,0.907,0.9264,0.3532,260.1,268.2,275.6,"Kế thừa nhiễm bẩn của bkai, cộng thêm fine-tune của nhóm"

@@ -71,12 +71,28 @@ CHUNK_TOP = 500             # số đoạn tốt nhất lấy ra trước khi g�
 
 BKAI_FT_DIR = RUNS_DIR / "bkai_ft"
 
+# Nhiễm bẩn dữ liệu huấn luyện của chính mô hình công khai.
+# Model card của bkai ghi rõ: "80% of the training set from the Legal Text
+# Retrieval Zalo 2021 challenge". Tập test của đồ án lại được cắt ra từ đúng tập
+# train đó, nên bkai đã nhìn thấy phần lớn câu hỏi test kèm nhãn đúng.
+# Model card của AITeamVN ghi: "Our model was not trained on this dataset".
+NHIEM_BAN = {
+    "bkai": "Huấn luyện trên 80% tập train Zalo 2021 (theo model card)",
+    "bkai_ft": "Kế thừa nhiễm bẩn của bkai, cộng thêm fine-tune của nhóm",
+    "aiteam": "",
+}
+MO_HINH_SACH = ("aiteam",)
+
 # Fine-tune
 FT_EPOCHS = 2
 FT_BATCH = 32
 FT_LR = 2e-5
 FT_WARMUP_RATIO = 0.1
 FT_HARD_NEGATIVES = 4
+# Batch 32 x 6 chuoi 256 token kem gradient lam tran 16 GB VRAM (do 2026-09-05).
+# CachedMultipleNegativesRankingLoss giu nguyen batch hieu dung 32 nhung chia
+# thanh cac lo nho, nen so am trong lo van la 32 ma bo nho chi bang lo nho.
+FT_MINI_BATCH = 8
 
 # Mọi CSV ghi kèm BOM để mở bằng Excel không vỡ chữ tiếng Việt
 CSV_KW = {"index": False, "encoding": "utf-8-sig"}
