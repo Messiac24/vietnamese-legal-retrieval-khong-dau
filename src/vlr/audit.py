@@ -79,7 +79,7 @@ def exact_duplicate_groups(df: pd.DataFrame) -> dict[str, str]:
 
 
 def near_duplicate_pairs(
-    df: pd.DataFrame, threshold: int, bands: int = 8
+    df: pd.DataFrame, threshold: int, bands: int = 8, max_bucket: int = 2000
 ) -> list[tuple[str, str, int]]:
     """Tìm các cặp điều luật gần trùng bằng SimHash chia băng.
 
@@ -90,6 +90,12 @@ def near_duplicate_pairs(
 
     `df` cần hai cột: `article_id` và `tokens` (danh sách token đã tách từ).
     Trả về danh sách (article_a, article_b, khoảng_cách_hamming).
+
+    `max_bucket` là chốt chặn: một băng gom quá nhiều điều thì số cặp phải so
+    tăng theo bình phương và bước kiểm toán treo. Băng vượt ngưỡng bị bỏ qua và
+    được đếm lại trong `near_duplicate_pairs.bo_qua`, để báo cáo chứ không im
+    lặng. Cùng một cặp thường rơi vào nhiều băng nên bỏ một băng hiếm khi mất
+    cặp thật.
     """
     ma = {
         aid: simhash64(toks) for aid, toks in zip(df["article_id"], df["tokens"])
@@ -102,8 +108,12 @@ def near_duplicate_pairs(
 
     da_xet: set[tuple[str, str]] = set()
     ket: list[tuple[str, str, int]] = []
+    bo_qua = 0
     for nhom in thung.values():
         if len(nhom) < 2:
+            continue
+        if len(nhom) > max_bucket:
+            bo_qua += 1
             continue
         for i in range(len(nhom)):
             for j in range(i + 1, len(nhom)):
@@ -114,6 +124,7 @@ def near_duplicate_pairs(
                 d = hamming(ma[cap[0]], ma[cap[1]])
                 if d <= threshold:
                     ket.append((cap[0], cap[1], d))
+    near_duplicate_pairs.bo_qua = bo_qua
     return sorted(ket, key=lambda x: x[2])
 
 

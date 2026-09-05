@@ -106,3 +106,16 @@ def test_near_duplicate_pairs_tim_ra_cap_gan_giong():
     cap_id = {tuple(sorted((a, b))) for a, b, _ in cap}
     assert ("a1", "a2") in cap_id
     assert ("a1", "a3") not in cap_id
+
+
+def test_near_duplicate_pairs_bo_qua_bang_qua_lon():
+    # 30 điều giống hệt nhau rơi cùng mọi băng. Với max_bucket=5 thì mọi băng
+    # đều bị bỏ qua, không cặp nào được trả về, và bộ đếm phải lớn hơn 0.
+    chung = ["dieu", "khoan", "thi", "hanh", "quy", "dinh"]
+    df = pd.DataFrame({
+        "article_id": [f"a{i}" for i in range(30)],
+        "tokens": [chung] * 30,
+    })
+    cap = audit.near_duplicate_pairs(df, threshold=3, max_bucket=5)
+    assert cap == []
+    assert audit.near_duplicate_pairs.bo_qua > 0

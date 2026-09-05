@@ -1,0 +1,4 @@
+﻿split,so_cau_hoi,so_cap_qrel,gold_trung_binh
+test,788,793,1.006
+train,1925,1986,1.032
+val,481,492,1.023
