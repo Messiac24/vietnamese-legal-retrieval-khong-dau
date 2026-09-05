@@ -64,6 +64,11 @@ AITEAM_MODEL = "AITeamVN/Vietnamese_Embedding"
 AITEAM_MAX_LEN = 512        # trần thật là 8192, cắt xuống cho cân chi phí
 AITEAM_NEEDS_SEGMENT = False
 
+# Mã hóa. fp16 nhanh gấp 2,5 lần fp32 mà không đổi thứ hạng (đo 2026-09-05).
+ENCODE_BATCH = 256
+ENCODE_FP16 = True
+CHUNK_TOP = 500             # số đoạn tốt nhất lấy ra trước khi gộp về điều
+
 BKAI_FT_DIR = RUNS_DIR / "bkai_ft"
 
 # Fine-tune
