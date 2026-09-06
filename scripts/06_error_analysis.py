@@ -97,10 +97,35 @@ def main() -> None:
     bang["ty_le_pct"] = (100 * bang["so_cau_hoi"] / len(pq)).round(2)
     bang.to_csv(config.EVAL_DIR / "crossover.csv", **config.CSV_KW)
     print(bang.to_string(index=False))
-    print(f"\nTrần lý thuyết nếu hợp nhất hoàn hảo: "
-          f"{100 * (ca_hai + chi_bm + chi_de) / len(pq):.2f}% "
-          f"(hiện BM25 {100 * bm.mean():.2f}%, ngữ nghĩa {100 * de.mean():.2f}%)")
     ve_venn(chi_bm, chi_de, ca_hai, khong_ai)
+
+    # Cả bốn dòng dưới đây đo CÙNG MỘT thước: tỷ lệ câu hỏi có ít nhất một điều
+    # gold nằm trong top-10. Không trộn với Recall@10 trung bình, vì câu hỏi có
+    # nhiều gold cho ra recall lẻ và hai con số sẽ lệch nhau vài phần trăm.
+    hop = pq[f"dung@10::{chon['he_sach_tot_nhat']}"].astype(bool)
+    tran = pd.DataFrame([
+        {"he_thong": "BM25", "ty_le_dung_top10_pct": round(100 * bm.mean(), 2)},
+        {"he_thong": cot_de.replace("dung@10::", ""),
+         "ty_le_dung_top10_pct": round(100 * de.mean(), 2)},
+        {"he_thong": chon["he_sach_tot_nhat"],
+         "ty_le_dung_top10_pct": round(100 * hop.mean(), 2)},
+        {"he_thong": "Hợp nhất chỉ từ top-10 của hai tầng (trần của phép hợp)",
+         "ty_le_dung_top10_pct": round(100 * (bm | de).mean(), 2)},
+    ])
+    tran.to_csv(config.EVAL_DIR / "fusion_ceiling.csv", **config.CSV_KW)
+    print()
+    print(tran.to_string(index=False))
+    print(f"    BM25 cứu riêng được {chi_bm} câu hỏi mà tầng ngữ nghĩa bỏ lỡ "
+          f"({100 * chi_bm / len(pq):.2f} điểm phần trăm)")
+    # Hệ hợp nhất thật CÓ THỂ vượt dòng cuối, và thực tế đã vượt. Dòng cuối chỉ
+    # là trần khi phép hợp bị giới hạn trong top-10 của mỗi tầng. Hệ thật hợp
+    # nhất từ top-100, nên nó kéo được cả những điều luật đứng hạng 11 tới 100
+    # lên top-10. Gọi dòng đó là "trần lý thuyết" là sai, và số đo đã bác bỏ.
+    vuot = 100 * hop.mean() - 100 * (bm | de).mean()
+    if vuot > 0:
+        print(f"    hệ hợp nhất VƯỢT dòng cuối {vuot:.2f} điểm phần trăm, vì nó "
+              f"hợp nhất từ top-{config.TOPK_FUSION} chứ không phải top-10")
+    print("    -> reports/eval/fusion_ceiling.csv")
 
     vi_du = []
     for ten, mat_na in [("chi_bm25_dung", bm & ~de), ("chi_ngu_nghia_dung", ~bm & de),

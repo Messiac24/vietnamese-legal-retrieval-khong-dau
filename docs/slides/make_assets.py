@@ -133,9 +133,43 @@ def sao_chep_bieu_do() -> None:
             print(f"  THIẾU {ten}: chạy scripts/05_evaluate.py và 06_error_analysis.py")
 
 
+def ve_bia() -> None:
+    """Nền trang bìa: các dòng văn bản mờ gợi hình một trang văn bản luật.
+
+    Tự vẽ thay vì lấy ảnh trên mạng để khỏi vướng bản quyền.
+    """
+    import numpy as np
+
+    rng = np.random.default_rng(config.SEED)
+    fig, ax = plt.subplots(figsize=(10, 7.5))
+    ax.set_facecolor("#12243A")
+    fig.patch.set_facecolor("#12243A")
+    y = 0.94
+    while y > 0.04:
+        if rng.random() < 0.16:
+            ax.plot([0.08, 0.08 + 0.30 * rng.random()], [y, y],
+                    color="#7FB3E8", lw=2.6, alpha=0.30)
+            y -= 0.035
+            continue
+        rong = 0.55 + 0.32 * rng.random()
+        ax.plot([0.08, 0.08 + rong], [y, y], color="#BBD5F0", lw=1.5, alpha=0.13)
+        y -= 0.022
+    for _ in range(220):
+        ax.scatter(rng.random(), rng.random(), s=rng.random() * 7,
+                   color="#2D75B6", alpha=0.16)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis("off")
+    fig.subplots_adjust(0, 0, 1, 1)
+    fig.savefig(IMG / "cover.png", dpi=140, facecolor="#12243A")
+    plt.close(fig)
+    print("  cover.png")
+
+
 def main() -> None:
     IMG.mkdir(parents=True, exist_ok=True)
     print("Sinh hình cho slide:")
+    ve_bia()
     ve_kien_truc()
     ve_do_dai()
     ve_kiem_toan()

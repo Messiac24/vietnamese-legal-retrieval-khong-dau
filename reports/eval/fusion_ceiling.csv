@@ -1,0 +1,5 @@
+﻿he_thong,ty_le_dung_top10_pct
+BM25,85.28
+Dense aiteam,97.34
+Trọng số (BM25 + aiteam),97.84
+Hợp nhất chỉ từ top-10 của hai tầng (trần của phép hợp),97.72

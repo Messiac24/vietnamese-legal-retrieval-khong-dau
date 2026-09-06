@@ -230,7 +230,7 @@ def main() -> None:
 
 def ve_recall(bang: pd.DataFrame) -> None:
     ks = list(config.EVAL_KS)
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(11, 5.6))
     rong = 0.8 / len(bang)
     x = np.arange(len(ks))
     for i, (_, h) in enumerate(bang.iterrows()):
@@ -245,7 +245,9 @@ def ve_recall(bang: pd.DataFrame) -> None:
     ax.set_title("Recall trên tập test, 788 câu hỏi, gold gốc.\n"
                  "Cột gạch chéo dùng mô hình đã thấy dữ liệu này khi huấn luyện.",
                  fontsize=11)
-    ax.legend(fontsize=8)
+    ax.set_ylim(0, 1.06)
+    ax.legend(fontsize=8, ncol=3, loc="upper center",
+              bbox_to_anchor=(0.5, -0.09), frameon=False)
     ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
     fig.savefig(config.EVAL_DIR / "recall_curve.png", dpi=150)
