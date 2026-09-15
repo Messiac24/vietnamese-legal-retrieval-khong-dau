@@ -1,0 +1,14 @@
+{
+  "do_tren": "val",
+  "lambda_phuc_hoi": 0.9,
+  "alpha_bm25_bo_dau": 0.25,
+  "alpha_duong_chinh": 0.75,
+  "nguon_mo_hinh_ngon_ngu": "kho điều luật + câu hỏi train",
+  "so_am_tiet": 18646298,
+  "so_bigram": 436741,
+  "do_chinh_xac_am_tiet_test": 0.9841,
+  "so_cau_phuc_hoi_dung_hoan_toan_test": 619,
+  "so_cau_test": 788,
+  "do_tre_phuc_hoi_ms": 0.98,
+  "cau_goc_bi_nhan_la_khong_dau": 0
+}

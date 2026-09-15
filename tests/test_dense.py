@@ -63,3 +63,24 @@ def test_top_k_theo_dieu_xep_giam_dan():
 
 def test_top_k_lon_hon_so_dieu_khong_no():
     assert len(dense.top_articles({"a1": 0.1}, 10)) == 1
+
+
+def _chi_muc_gia():
+    vec = np.array([[1, 0], [0, 1], [0.6, 0.8]], dtype=np.float16)
+    return dense.DenseIndex("gia", 16, False, ["a1#0", "a1#1", "a2#0"], vec)
+
+
+def test_doan_khop_nhat_chon_doan_diem_cao_nhat_trong_dieu():
+    idx = _chi_muc_gia()
+    cid, s = idx.doan_khop_nhat(np.array([0.0, 1.0]), "a1")
+    assert cid == "a1#1" and s == pytest.approx(1.0)
+
+
+def test_doan_khop_nhat_chi_xet_doan_cua_dung_dieu():
+    # a2#0 khớp hơn a1#0 nhưng không thuộc a1, nên không được chọn
+    idx = _chi_muc_gia()
+    assert idx.doan_khop_nhat(np.array([1.0, 0.0]), "a1")[0] == "a1#0"
+
+
+def test_doan_khop_nhat_dieu_khong_co_doan():
+    assert _chi_muc_gia().doan_khop_nhat(np.array([1.0, 0.0]), "khong_co") is None

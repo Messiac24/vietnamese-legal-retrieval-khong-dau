@@ -77,6 +77,20 @@ class DenseIndex:
         self.fp16 = fp16
         self._model = None
         self._article_of = {c: article_of(c) for c in self.chunk_ids}
+        self._doan_cua: dict[str, list[int]] | None = None
+
+    def doan_khop_nhat(self, query_vec: np.ndarray, article_id: str) -> tuple[str, float] | None:
+        """Đoạn khớp câu hỏi nhất trong một điều luật, tức khoản quyết định điểm max."""
+        if self._doan_cua is None:
+            self._doan_cua = {}
+            for i, c in enumerate(self.chunk_ids):
+                self._doan_cua.setdefault(self._article_of[c], []).append(i)
+        vt = self._doan_cua.get(article_id)
+        if not vt:
+            return None
+        s = self.embeddings[vt].astype(np.float32) @ np.asarray(query_vec, dtype=np.float32)
+        j = int(np.argmax(s))
+        return self.chunk_ids[vt[j]], float(s[j])
 
     def _load_model(self):
         """Nạp mô hình một lần, chạy fp16 trên GPU.

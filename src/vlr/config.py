@@ -94,6 +94,11 @@ FT_HARD_NEGATIVES = 4
 # thanh cac lo nho, nen so am trong lo van la 32 ma bo nho chi bang lo nho.
 FT_MINI_BATCH = 8
 
+# Câu hỏi gõ không dấu
+BM25_KHONG_DAU_DIR = INDEX_DIR / "bm25_khong_dau"
+PHUC_HOI_DAU_PATH = INDEX_DIR / "phuc_hoi_dau.pkl"
+PHUC_HOI_LAMBDA_GRID = (0.5, 0.7, 0.8, 0.9, 0.95, 0.99)
+
 # Mọi CSV ghi kèm BOM để mở bằng Excel không vỡ chữ tiếng Việt
 CSV_KW = {"index": False, "encoding": "utf-8-sig"}
 
