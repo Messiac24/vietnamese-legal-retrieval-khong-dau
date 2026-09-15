@@ -24,13 +24,16 @@ IMG = Path(__file__).resolve().parent / "img"
 XANH, CAM, XAM, MUC = "#2D75B6", "#D68910", "#5A5A5A", "#1A1A1A"
 
 
+DO, XLA = "#C0392B", "#1E7A4B"
+
+
 def _hop(ax, x, y, w, h, nhan, phu, mau):
     ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.012",
                                 linewidth=1.6, edgecolor=mau, facecolor=mau + "1A"))
-    ax.text(x + w / 2, y + h * 0.63, nhan, ha="center", va="center",
+    ax.text(x + w / 2, y + h * 0.68, nhan, ha="center", va="center",
             fontsize=11, weight="bold", color=MUC)
-    ax.text(x + w / 2, y + h * 0.26, phu, ha="center", va="center",
-            fontsize=8.5, color=XAM)
+    ax.text(x + w / 2, y + h * 0.28, phu, ha="center", va="center",
+            fontsize=8.5, color=XAM, linespacing=1.25)
 
 
 def _mui_ten(ax, xy1, xy2):
@@ -39,25 +42,32 @@ def _mui_ten(ax, xy1, xy2):
 
 
 def ve_kien_truc() -> None:
+    arts = pd.read_parquet(config.ARTICLES_PATH, columns=["article_id"])
+    so_doan = len(pd.read_parquet(config.CHUNKS_PATH, columns=["chunk_id"]))
+    nghin = lambda x: f"{x:,}".replace(",", ".")
     fig, ax = plt.subplots(figsize=(10, 4.3))
-    _hop(ax, 0.01, 0.40, 0.15, 0.20, "Câu hỏi", "tiếng Việt tự nhiên", XAM)
-    _hop(ax, 0.22, 0.66, 0.30, 0.22, "Tầng từ khóa: BM25",
-         "tách từ pyvi, 61.425 điều", XANH)
-    _hop(ax, 0.22, 0.12, 0.30, 0.22, "Tầng ngữ nghĩa: bi-encoder",
-         "154.176 đoạn, gộp max về điều", CAM)
-    _hop(ax, 0.58, 0.39, 0.20, 0.22, "Hợp nhất",
-         "RRF hoặc trọng số", "#1E7A4B")
-    _hop(ax, 0.83, 0.39, 0.16, 0.22, "Xếp hạng", "kèm từ khớp", XAM)
-    _mui_ten(ax, (0.16, 0.52), (0.22, 0.74))
-    _mui_ten(ax, (0.16, 0.48), (0.22, 0.26))
-    _mui_ten(ax, (0.52, 0.74), (0.58, 0.56))
-    _mui_ten(ax, (0.52, 0.26), (0.58, 0.44))
-    _mui_ten(ax, (0.78, 0.50), (0.83, 0.50))
-    ax.text(0.37, 0.92, "bắt đúng số hiệu, thuật ngữ, con số",
+    _hop(ax, 0.00, 0.38, 0.12, 0.24, "Câu hỏi", "có dấu hoặc\nkhông dấu", XAM)
+    _hop(ax, 0.155, 0.36, 0.17, 0.28, "Phục hồi dấu",
+         "chỉ khi câu thiếu dấu\nbigram + Viterbi", DO)
+    _hop(ax, 0.37, 0.66, 0.24, 0.24, "Tầng từ khóa: BM25",
+         f"tách từ pyvi, {nghin(len(arts))} điều", XANH)
+    _hop(ax, 0.37, 0.10, 0.24, 0.24, "Tầng ngữ nghĩa",
+         f"{nghin(so_doan)} đoạn, gộp max", CAM)
+    _hop(ax, 0.655, 0.38, 0.15, 0.24, "Hợp nhất", "tổng có trọng số", XLA)
+    _hop(ax, 0.845, 0.38, 0.155, 0.24, "Trả lời", "trích khoản luật\nkèm từ khớp", XAM)
+    _mui_ten(ax, (0.12, 0.50), (0.155, 0.50))
+    _mui_ten(ax, (0.325, 0.54), (0.37, 0.76))
+    _mui_ten(ax, (0.325, 0.46), (0.37, 0.22))
+    _mui_ten(ax, (0.61, 0.76), (0.655, 0.56))
+    _mui_ten(ax, (0.61, 0.22), (0.655, 0.44))
+    _mui_ten(ax, (0.805, 0.50), (0.845, 0.50))
+    ax.text(0.49, 0.94, "bắt đúng số hiệu, thuật ngữ, con số",
             ha="center", fontsize=8.5, color=XANH, style="italic")
-    ax.text(0.37, 0.05, "bắt được diễn đạt khác, không cần trùng từ",
+    ax.text(0.49, 0.03, "bắt được diễn đạt khác, không cần trùng từ",
             ha="center", fontsize=8.5, color="#B9770E", style="italic")
-    ax.set_xlim(0, 1)
+    ax.text(0.24, 0.27, "câu có dấu đi thẳng qua", ha="center", fontsize=8.5,
+            color=DO, style="italic")
+    ax.set_xlim(-0.015, 1.015)
     ax.set_ylim(0, 1)
     ax.axis("off")
     fig.tight_layout()
@@ -123,6 +133,35 @@ def ve_kiem_toan() -> None:
     print("  audit_findings.png")
 
 
+def ve_khong_dau() -> None:
+    """Recall@10 khi câu hỏi gõ không dấu, đọc từ reports/eval/khong_dau.csv."""
+    kq = pd.read_csv(config.EVAL_DIR / "khong_dau.csv", encoding="utf-8-sig")
+    lay = lambda dk, cach, he: 100 * float(kq[(kq.dieu_kien == dk) & (kq.cach_xu_ly == cach)
+                                             & (kq.he_thong == he)]["recall@10"].iloc[0])
+    dong = [
+        ("Câu có dấu, hệ lai (mốc)", lay("có dấu", "giữ nguyên", "Hợp nhất"), XAM),
+        ("Không dấu, BM25 giữ nguyên", lay("không dấu", "giữ nguyên", "BM25"), DO),
+        ("Không dấu, ngữ nghĩa giữ nguyên", lay("không dấu", "giữ nguyên", "Ngữ nghĩa"), DO),
+        ("Không dấu, hệ lai giữ nguyên", lay("không dấu", "giữ nguyên", "Hợp nhất"), DO),
+        ("Không dấu, BM25 chỉ mục bỏ dấu", lay("không dấu", "chỉ mục bỏ dấu", "BM25 bỏ dấu"), CAM),
+        ("Không dấu, phục hồi dấu rồi hệ lai", lay("không dấu", "phục hồi dấu", "Hợp nhất"), XLA),
+    ][::-1]
+    fig, ax = plt.subplots(figsize=(8.8, 3.7))
+    thanh = ax.barh([d[0] for d in dong], [d[1] for d in dong],
+                    color=[d[2] for d in dong], alpha=0.9)
+    for t, d in zip(thanh, dong):
+        ax.text(d[1] + 1, t.get_y() + t.get_height() / 2, f"{d[1]:.2f}".replace(".", ","),
+                va="center", fontsize=10.5, weight="bold")
+    ax.set_xlim(0, 108)
+    ax.set_xlabel("Recall@10 (%) trên 788 câu hỏi test")
+    ax.tick_params(axis="y", labelsize=10)
+    ax.grid(axis="x", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(IMG / "khong_dau.png", dpi=170)
+    plt.close(fig)
+    print("  khong_dau.png")
+
+
 def sao_chep_bieu_do() -> None:
     for ten in ("recall_curve.png", "alpha_curve.png", "venn_bm25_dense.png"):
         nguon = config.EVAL_DIR / ten
@@ -173,6 +212,7 @@ def main() -> None:
     ve_kien_truc()
     ve_do_dai()
     ve_kiem_toan()
+    ve_khong_dau()
     sao_chep_bieu_do()
 
 
