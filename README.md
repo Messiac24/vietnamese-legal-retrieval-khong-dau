@@ -1,23 +1,32 @@
-# Tìm kiếm điều luật cho câu hỏi pháp luật tiếng Việt
+# Truy hồi điều luật tiếng Việt cho câu hỏi gõ không dấu
 
-Kết hợp tìm theo từ khóa và tìm theo ngữ nghĩa, trên 61.425 điều luật Việt Nam.
+Phục hồi dấu, truy hồi lai và kiểm toán rò rỉ dữ liệu, trên 61.425 điều luật Việt Nam.
 
 Môn: Xử lý ngôn ngữ tự nhiên. GVHD: Đặng Văn Thìn.
 Nhóm 09: Lê Hoàng Lộc (25210293), Lê Thị Tuấn Anh (25210250), Đoàn Mậu Thiên Thư (25210341).
 
 Thiết kế chi tiết: [`docs/specs/2026-09-05-vietnamese-legal-retrieval-design.md`](docs/specs/2026-09-05-vietnamese-legal-retrieval-design.md)
+Nghiên cứu liên quan, 27 nguồn: [`docs/NGHIEN_CUU_LIEN_QUAN.md`](docs/NGHIEN_CUU_LIEN_QUAN.md)
 
-## Kết quả một dòng
+## Kết quả ngắn gọn
 
-Trên 788 câu hỏi test, hệ lai tốt nhất **không dùng mô hình nhiễm bẩn** đạt
-Recall@10 = 0,9772 và MRR@10 = 0,8619. Nhưng nó chỉ hơn tầng ngữ nghĩa dùng một
-mình **0,50 điểm phần trăm, tức 4 câu hỏi trên 788**, và riêng BM25 chỉ cứu được
-**3 câu**. Có cải thiện, nhưng rất nhỏ. Đó là kết luận thật của đồ án, không phải
-kết luận mong muốn.
+Hai câu hỏi nghiên cứu, chấm trên 788 câu hỏi test, tham số chốt trên val:
 
-Phát hiện đáng giá hơn nằm ở chỗ khác: mô hình bi-encoder tiếng Việt phổ biến
-nhất đã được huấn luyện trên chính bộ dữ liệu này, nên mọi con số "zero-shot" của
-nó trên benchmark này đều bị thổi lên.
+| | Recall@10 |
+|---|---|
+| **CH1.** Câu có dấu, hệ lai BM25 + AITeamVN | 0,9772, hơn ngữ nghĩa thuần 0,50 điểm (4 câu trên 788) |
+| **CH2.** Cùng câu đó bỏ dấu, giữ nguyên hệ | 0,1447 |
+| Câu không dấu, BM25 trên chỉ mục bỏ dấu | 0,7430 |
+| Câu không dấu, phục hồi dấu bằng bigram rồi hệ lai | **0,9670** |
+
+Với câu có dấu, hợp nhất có cải thiện nhưng rất nhỏ. Khi người dân gõ không dấu,
+mô hình ngữ nghĩa sạch tốt nhất tụt từ 0,9721 xuống 0,1244. Một mô hình bigram âm
+tiết học từ chính kho luật phục hồi đúng 98,41% âm tiết trong khoảng 1 mili giây mỗi
+câu và kéo hệ về 0,9670.
+
+Phát hiện phụ về dữ liệu: bộ dữ liệu công bố có 24 trên 24 câu hỏi chồng lấn mang
+nhãn mâu thuẫn, và mô hình bi-encoder tiếng Việt phổ biến nhất đã được huấn luyện
+trên chính bộ dữ liệu này.
 
 ## 1. Cài đặt
 
@@ -61,6 +70,7 @@ C:/Python314/python.exe scripts/02_build_index.py --model bkai_ft
 C:/Python314/python.exe scripts/04_tune.py
 C:/Python314/python.exe scripts/05_evaluate.py
 C:/Python314/python.exe scripts/06_error_analysis.py
+C:/Python314/python.exe scripts/07_khong_dau.py
 ```
 
 Thời gian thật đã đo trên RTX 5060 Ti:
@@ -74,8 +84,9 @@ Thời gian thật đã đo trên RTX 5060 Ti:
 | Fine-tune bkai | 2,9 phút |
 | Quét tham số trên val | 1,7 phút |
 | Chấm điểm trên test | 1,3 phút |
+| Câu không dấu: chỉ mục bỏ dấu, phục hồi dấu, chấm test | 2,5 phút |
 
-Kiểm thử:
+Kiểm thử, 122 test:
 
 ```bash
 C:/Python314/python.exe -m pytest -q
@@ -248,25 +259,64 @@ sẽ chữa bệnh ở đâu?"*. Hệ trả về Điều 138 "Tổ chức điề
 chữa bệnh", còn nhãn ghi Điều 133 về cơ quan được giao nhiệm vụ. Điều hệ trả về
 sát câu hỏi hơn.
 
-## 10. Giới hạn
+## 10. Câu hỏi gõ không dấu
 
-1. **Nhãn không đầy đủ.** 24 câu hỏi có hai bộ nhãn khác nhau trong chính bộ dữ
+Đây là câu hỏi nghiên cứu thứ hai và là phần mới nhất của đồ án. Chạy bằng
+`scripts/07_khong_dau.py`, đọc từ [`reports/eval/khong_dau.csv`](reports/eval/khong_dau.csv).
+
+Câu không dấu tạo bằng cách bỏ dấu 788 câu hỏi test bằng máy, nên nhãn giữ nguyên.
+
+| Câu hỏi | Cách xử lý | Hệ | R@1 | R@10 | MRR@10 |
+|---|---|---|---|---|---|
+| có dấu | giữ nguyên | Hệ lai | 0,7824 | 0,9772 | 0,8619 |
+| không dấu | giữ nguyên | BM25 | 0,0152 | 0,0622 | 0,0271 |
+| không dấu | giữ nguyên | Ngữ nghĩa | 0,0317 | 0,1244 | 0,0582 |
+| không dấu | giữ nguyên | Hệ lai | 0,0343 | 0,1447 | 0,0649 |
+| không dấu | chỉ mục bỏ dấu | BM25 | 0,3230 | 0,7430 | 0,4597 |
+| không dấu | chỉ mục bỏ dấu | BM25 bỏ dấu + ngữ nghĩa, alpha 0,25 | 0,3687 | 0,7557 | 0,4944 |
+| không dấu | phục hồi dấu | Ngữ nghĩa | 0,7659 | 0,9645 | 0,8458 |
+| **không dấu** | **phục hồi dấu** | **Hệ lai** | **0,7709** | **0,9670** | **0,8507** |
+
+**Phục hồi dấu** (`src/vlr/diacritics.py`): mô hình bigram trên âm tiết, nội suy với
+unigram, học từ 18,6 triệu âm tiết của kho điều luật cộng câu hỏi train, giải bằng
+Viterbi. `lambda = 0,9` chốt trên val. Âm tiết người dùng đã gõ dấu thì giữ nguyên.
+Trên test: 98,41% âm tiết đúng, 619 trên 788 câu đúng hoàn toàn, khoảng 1 mili giây
+mỗi câu.
+
+**Sai ở đâu**: từ nói thường mà văn bản luật không dùng, như "tài xế" thành "tải
+xe", "máu" thành "mẫu". Trong 169 câu sai ít nhất một âm tiết, tỷ lệ tìm đúng trong
+top-10 tụt từ 94,67% xuống 89,94%: mất 9 câu, được 1 câu.
+
+**Bộ định tuyến**: 0 trên 1.269 câu hỏi gốc của val và test bị nhận nhầm là không
+dấu, nên câu có dấu đi thẳng qua hệ cũ và giữ nguyên 0,9772.
+
+**Trợ lý tra cứu** (`src/vlr/tra_cuu.py`, mục 10 của notebook): chatbot kiểu truy hồi.
+Nó phục hồi dấu nếu cần, tìm bằng hệ lai, rồi trả lời bằng cách trích nguyên văn
+khoản luật có điểm cao nhất kèm số hiệu điều. Không có mô hình sinh chữ nên không bịa
+được câu nào.
+
+## 11. Giới hạn
+
+1. **Câu không dấu tạo bằng máy.** Chưa có câu do người thật gõ, và chưa đo trên câu
+   gõ dấu một nửa, sai chính tả hay viết tắt.
+2. **Nhãn không đầy đủ.** 24 câu hỏi có hai bộ nhãn khác nhau trong chính bộ dữ
    liệu gốc. Mọi con số Recall là cận dưới.
-2. **Một seed.** Mỗi cấu hình chạy đúng một lần, nên không nói được gì về biên độ
+3. **Một seed.** Mỗi cấu hình chạy đúng một lần, nên không nói được gì về biên độ
    nhiễu giữa các lần chạy.
-3. **F2@10 không so được với bảng xếp hạng Zalo.** Ban tổ chức chấm trên tập test
+4. **F2@10 không so được với bảng xếp hạng Zalo.** Ban tổ chức chấm trên tập test
    riêng không công khai, và cho phép trả về số lượng kết quả thay đổi được. Con
    số F2@10 ở đây cố định k = 10 nên thấp một cách máy móc.
-4. **Không có cross-encoder xếp hạng lại.** Đây là hướng phát triển rõ ràng nhất.
-5. **Không sinh câu trả lời.** Đề tài là truy hồi. Trả về sai điều luật kèm một
-   câu trả lời trôi chảy còn nguy hiểm hơn trả về sai điều luật.
+5. **Không có cross-encoder xếp hạng lại.** Nằm ở hướng phát triển, cùng với việc cho
+   mô hình phục hồi dấu học thêm văn nói.
+6. **Không sinh câu trả lời.** Trả về sai điều luật kèm một câu trả lời trôi chảy
+   còn nguy hiểm hơn trả về sai điều luật.
 
-## 11. Bản đồ thư mục
+## 12. Bản đồ thư mục
 
 | Đường dẫn | Nội dung |
 |---|---|
-| `src/vlr/` | Thư viện lõi, 12 mô-đun, mỗi mô-đun có test riêng |
-| `scripts/01` tới `06` | Sáu bước chạy tuần tự |
+| `src/vlr/` | Thư viện lõi, 14 mô-đun, mỗi mô-đun có test riêng |
+| `scripts/01` tới `07` | Bảy bước chạy tuần tự |
 | `reports/audit/` | 11 tệp bằng chứng kiểm toán |
 | `reports/eval/` | Bảng kết quả, quét tham số, biểu đồ |
 | `runs/bkai_ft/` | Mô hình đã fine-tune và cấu hình thật đã chạy |
@@ -274,5 +324,7 @@ sát câu hỏi hơn.
 | `notebooks/demo_giai_thich.ipynb` | Bản chú giải để đọc hiểu |
 | `docs/slides/` | Mã sinh slide và tệp `.pptx` |
 | `docs/HUONG_DAN_THUYET_TRINH.md` | Kịch bản thuyết trình |
+| `docs/NGHIEN_CUU_LIEN_QUAN.md` | Nghiên cứu trước, khoảng trống, tài liệu tham khảo |
 
-Mọi con số trong slide và báo cáo đều đọc từ `reports/`. Không con số nào gõ tay.
+Slide và notebook đọc số thẳng từ `reports/`. README này viết tay; mọi con số đã được
+dò lại với tệp kết quả, và phải dò lại nếu chạy lại pipeline.

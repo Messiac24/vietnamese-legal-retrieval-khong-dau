@@ -25,8 +25,9 @@ def them(ngan: str, dai: str, ma: str = "") -> None:
 
 them(
     """
-# Demo: Tìm kiếm điều luật cho câu hỏi pháp luật tiếng Việt
+# Demo: Truy hồi điều luật tiếng Việt cho câu hỏi gõ không dấu
 
+Phục hồi dấu, truy hồi lai và kiểm toán rò rỉ dữ liệu.
 Nhóm 09, môn Xử lý ngôn ngữ tự nhiên. GVHD: Đặng Văn Thìn.
 
 ### Nội dung
@@ -37,13 +38,15 @@ Nhóm 09, môn Xử lý ngôn ngữ tự nhiên. GVHD: Đặng Văn Thìn.
 4. Vì sao phải chia đoạn
 5. Ba tầng trên một câu hỏi thật
 6. Giải thích: từ nào đã khớp
-7. Bảng kết quả trên tập test
-8. Hệ sai ở đâu
-9. Thử một câu hỏi bất kỳ
+7. Kết quả trên câu có dấu
+8. Câu hỏi gõ không dấu
+9. Hệ sai ở đâu
+10. Trợ lý tra cứu
 """,
     """
-# Bản chú giải: Tìm kiếm điều luật cho câu hỏi pháp luật tiếng Việt
+# Bản chú giải: Truy hồi điều luật tiếng Việt cho câu hỏi gõ không dấu
 
+Phục hồi dấu, truy hồi lai và kiểm toán rò rỉ dữ liệu.
 Nhóm 09, môn Xử lý ngôn ngữ tự nhiên. GVHD: Đặng Văn Thìn.
 
 Notebook này chạy **cùng một mã** với `demo.ipynb`, chỉ dày thêm phần giải thích.
@@ -52,6 +55,13 @@ Bản kia để chiếu khi bảo vệ, bản này để đọc hiểu.
 Mỗi mục dưới đây trả lời ba câu: *đang làm gì*, *vì sao làm thế*, và *nếu làm khác
 thì hỏng ở đâu*.
 
+Hai câu hỏi nghiên cứu:
+
+- **CH1.** Trên dữ liệu đã kiểm toán, với mô hình ngữ nghĩa chưa thấy dữ liệu, ghép
+  thêm BM25 còn cải thiện được bao nhiêu? Mục 7 trả lời.
+- **CH2.** Khi người dùng gõ không dấu, hệ còn đứng vững không, và cách sửa rẻ nhất
+  là gì? Mục 8 trả lời.
+
 ### Nội dung
 
 1. Môi trường
@@ -60,9 +70,10 @@ thì hỏng ở đâu*.
 4. Vì sao phải chia đoạn
 5. Ba tầng trên một câu hỏi thật
 6. Giải thích: từ nào đã khớp
-7. Bảng kết quả trên tập test
-8. Hệ sai ở đâu
-9. Thử một câu hỏi bất kỳ
+7. Kết quả trên câu có dấu
+8. Câu hỏi gõ không dấu
+9. Hệ sai ở đâu
+10. Trợ lý tra cứu
 """,
 )
 
@@ -79,7 +90,7 @@ Card RTX 5060 Ti là kiến trúc Blackwell, cần wheel `cu130`. Nếu thấy h
 thì mọi phần mã hóa sẽ chạy trên CPU và chậm hàng chục lần.
 """,
     """
-import sys, warnings
+import json, sys, warnings
 from pathlib import Path
 
 ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
@@ -89,8 +100,8 @@ warnings.filterwarnings("ignore")
 import pandas as pd
 import torch
 
-from vlr import (chunking, config, dense, explain, fusion, lexical, metrics,
-                 pipeline, textnorm)
+from vlr import (chunking, config, dense, diacritics, explain, fusion, lexical,
+                 metrics, pipeline, textnorm, tra_cuu)
 
 pd.set_option("display.max_colwidth", 68)
 pd.set_option("display.width", 150)
@@ -215,7 +226,7 @@ Chú ý: chỉ mục BM25 được dựng lại tại chỗ với tham số đã
 Mô hình dùng ở đây là **AITeamVN**, mô hình sạch. Mục 7 sẽ giải thích vì sao không
 dùng mô hình có điểm cao hơn.
 
-Câu hỏi chọn làm ví dụ đúng là một trong 17 ca mà hệ bị chấm sai. Mục 8 sẽ cho
+Câu hỏi chọn làm ví dụ đúng là một trong 17 ca mà hệ bị chấm sai. Mục 9 sẽ cho
 thấy vì sao nhóm cho rằng ở ca này chính **nhãn** mới đáng ngờ, chứ không phải hệ.
 """,
     """
@@ -282,9 +293,12 @@ for ten, run in (("BM25", run_bm), ("Hợp nhất", run_hop)):
 )
 
 them(
-    "## 7. Bảng kết quả trên tập test",
+    "## 7. Kết quả trên câu có dấu",
     """
-## 7. Bảng kết quả trên tập test
+## 7. Kết quả trên câu có dấu
+
+Mục này trả lời **CH1**: với câu hỏi có dấu đầy đủ, ghép BM25 vào còn giúp được bao
+nhiêu.
 
 Bảng này đọc **thẳng** từ `reports/eval/model_comparison.csv`, không con số nào gõ
 tay. Chạy lại pipeline là bảng tự đổi theo.
@@ -317,9 +331,77 @@ display(pd.read_csv(config.EVAL_DIR / "crossover.csv", **DOC))
 )
 
 them(
-    "## 8. Hệ sai ở đâu",
+    "## 8. Câu hỏi gõ không dấu",
     """
-## 8. Hệ sai ở đâu
+## 8. Câu hỏi gõ không dấu
+
+Mục này trả lời **CH2**. Người dân hay gõ không dấu khi nhắn trên điện thoại hoặc
+gõ vội. Nhóm lấy đúng 788 câu hỏi test, bỏ hết dấu bằng máy, giữ nguyên nhãn, rồi
+chạy lại toàn bộ hệ.
+
+**Sụp đổ.** BM25 tìm theo từ, mà "phat" và "phạt" là hai từ khác nhau nên gần như
+không khớp gì. Mô hình ngữ nghĩa cũng sụp; giả thuyết của nhóm là nó học chủ yếu
+trên văn bản có dấu, nhưng chưa kiểm chứng trực tiếp.
+
+**Sửa bằng phục hồi dấu.** `diacritics.PhucHoiDau` là một mô hình bigram trên âm
+tiết, học từ chính kho điều luật cộng câu hỏi train:
+
+1. Đếm unigram và bigram âm tiết.
+2. Mỗi âm tiết không dấu có nhiều ứng viên: `phat` có thể là phát, phạt, phắt.
+3. Viterbi chọn chuỗi ứng viên có tổng log xác suất bigram lớn nhất, với xác suất
+   bigram nội suy cùng unigram theo hệ số `lambda`.
+
+`lambda` chốt trên val theo độ chính xác âm tiết. Âm tiết người dùng đã gõ có dấu
+thì giữ nguyên, nên câu gõ dấu một nửa vẫn dùng được.
+
+**Vì sao học từ kho luật mà không tải mô hình có sẵn.** Từ vựng cần phục hồi đúng
+nhất là từ vựng pháp lý, và nó có sẵn trong kho. Nhược điểm cũng từ đó mà ra: từ
+nói thường như "tài xế" không có trong văn bản luật nên dễ bị phục hồi sai. Ô cuối
+của mục này in ra đúng những ca đó.
+
+**Bộ định tuyến.** `diacritics.co_dau` kiểm câu có chữ mang dấu hay không. Câu có
+dấu đi thẳng qua hệ cũ, nên không có rủi ro làm hỏng câu có dấu.
+
+Mọi bảng dưới đây đọc từ `reports/eval/khong_dau*.csv`, do
+`scripts/07_khong_dau.py` sinh ra.
+""",
+    """
+ph = diacritics.PhucHoiDau.load(config.PHUC_HOI_DAU_PATH)
+VI_DU = "Đi xe máy không đội mũ bảo hiểm bị phạt bao nhiêu tiền?"
+KD = diacritics.bo_dau(VI_DU)
+PH = ph.phuc_hoi(KD)
+print("Có dấu      :", VI_DU)
+print("Không dấu   :", KD, "| có dấu?", diacritics.co_dau(KD))
+print("Phục hồi dấu:", PH)
+
+def top_ngu_nghia(cau, k=3):
+    return idx_de.search(idx_de.encode_queries([cau]), top_k=k,
+                         pooling=ts["dense"]["gop_doan"], chunk_top=config.CHUNK_TOP)[0]
+
+display(pd.concat([bang_top(top_ngu_nghia(KD), "Ngữ nghĩa, không dấu", 3),
+                   bang_top(top_ngu_nghia(PH), "Ngữ nghĩa, phục hồi dấu", 3)],
+                  ignore_index=True))
+
+print("Recall@10 trên 788 câu hỏi test:")
+kd = pd.read_csv(config.EVAL_DIR / "khong_dau.csv", **DOC)
+display(kd[["dieu_kien", "cach_xu_ly", "he_thong", "recall@1", "recall@10", "mrr@10"]])
+
+tham = json.loads((config.EVAL_DIR / "khong_dau_params.json").read_text(encoding="utf-8"))
+print(f"Phục hồi dấu: {tham['do_chinh_xac_am_tiet_test']:.2%} âm tiết đúng, "
+      f"{tham['so_cau_phuc_hoi_dung_hoan_toan_test']}/{tham['so_cau_test']} câu đúng hoàn toàn, "
+      f"{tham['do_tre_phuc_hoi_ms']} ms mỗi câu")
+display(pd.read_csv(config.EVAL_DIR / "khong_dau_loi.csv", **DOC))
+
+vd = pd.read_csv(config.EVAL_DIR / "khong_dau_vi_du.csv", **DOC)
+sai = vd[vd["am_tiet_dung"] < vd["am_tiet"]]
+display(sai[["goc", "phuc_hoi", "goc_dung_top10", "phuc_hoi_dung_top10"]].head(5))
+""",
+)
+
+them(
+    "## 9. Hệ sai ở đâu",
+    """
+## 9. Hệ sai ở đâu
 
 Hệ sạch tốt nhất sai 17 trên 788 câu hỏi. Cả 17 ca đều được **đọc tay**, không
 đoán. Nhãn nguyên nhân giữ ở tệp nguồn `docs/nhan_loi_doc_tay.csv` rồi ghép vào,
@@ -345,37 +427,52 @@ for _, h in sai[sai["nguyen_nhan"] == "sai_gold"].head(2).iterrows():
 )
 
 them(
-    "## 9. Thử một câu hỏi bất kỳ",
+    "## 10. Trợ lý tra cứu",
     """
-## 9. Thử một câu hỏi bất kỳ
+## 10. Trợ lý tra cứu
 
-Hàm `hoi()` gói lại toàn bộ đường chạy: tách từ, BM25, mã hóa câu hỏi, tìm trên
-154.176 đoạn, gộp về điều, hợp nhất, rồi in kèm những từ đã khớp.
+Đây là một chatbot kiểu **truy hồi**, không phải kiểu RAG. Nó không có mô hình sinh
+chữ, nên không bịa được câu nào: câu trả lời là đúng khoản luật có thật trong kho,
+in nguyên văn, kèm số hiệu điều để người dùng tự kiểm.
 
-Đây cũng là phần dễ gây bất ngờ nhất khi bảo vệ. Nếu hệ trả sai thì **đừng giấu**:
-17 ca sai đã được phân loại ở mục 8, và một ca sai mới chỉ xác nhận đúng những gì
-đã báo cáo.
+`tra_cuu.TroLyTraCuu` ghép lại toàn bộ đường chạy:
+
+1. Kiểm dấu. Câu không dấu thì phục hồi dấu trước.
+2. BM25 và tầng ngữ nghĩa, hợp nhất bằng tổng có trọng số đã chốt trên val.
+3. Với điều luật đứng đầu, tìm **đoạn** có cosine cao nhất với câu hỏi. Đó chính
+   là khoản quyết định điểm `max` khi gộp đoạn về điều, nên nó là phần trả lời.
+4. In kèm những từ đã khớp và hai điều luật tham khảo thêm.
+
+Trợ lý dùng lại chỉ mục đã nạp ở mục 5, không nạp mô hình lần hai.
+
+Vì sao không dùng LLM sinh câu trả lời: trả sai điều luật kèm một câu trả lời trôi
+chảy còn nguy hiểm hơn trả sai điều luật, vì người đọc không còn thấy chỗ sai.
 """,
     """
-def hoi(cau_hoi: str, k: int = 5) -> pd.DataFrame:
-    \"\"\"Chạy đủ ba tầng cho một câu hỏi và trả về bảng top-k.\"\"\"
-    bm = idx_bm.search_tokens(textnorm.tokens(cau_hoi), config.TOPK_FUSION)
-    de = idx_de.search(idx_de.encode_queries([cau_hoi]), top_k=config.TOPK_FUSION,
-                       pooling=ts["dense"]["gop_doan"],
-                       chunk_top=config.CHUNK_TOP)[0]
-    hop = fusion.weighted_sum(bm, de, ts["weighted"]["alpha"], config.TOPK_FUSION)
-    return pd.DataFrame({
-        "hạng": range(1, k + 1),
-        "điều luật": [a for a, _ in hop[:k]],
-        "tiêu đề": [TIEU_DE.get(a, "")[:56] for a, _ in hop[:k]],
-        "điểm": [round(s, 4) for _, s in hop[:k]],
-        "từ khớp": [explain.to_chuoi(explain.matched_terms(
-            cau_hoi, f"{TIEU_DE.get(a, '')} {VAN_BAN.get(a, '')}", IDF), 3)
-            for a, _ in hop[:k]],
-    })
+tro_ly = tra_cuu.TroLyTraCuu(bm=idx_bm, de=idx_de)
+print(tro_ly.tra_loi("di xe may khong doi mu bao hiem bi phat bao nhieu tien"))
+""",
+)
 
+them(
+    """
+### Tự gõ câu hỏi
 
-hoi("Đi xe máy không đội mũ bảo hiểm bị phạt bao nhiêu tiền?")
+Đổi câu trong ô dưới rồi chạy lại. Có dấu hay không dấu đều được. Nếu trợ lý trả
+sai thì **đừng giấu**: 17 ca sai của câu có dấu đã được phân loại ở mục 9.
+""",
+    """
+### Tự gõ câu hỏi
+
+Đổi câu trong ô dưới rồi chạy lại. Có dấu hay không dấu đều được.
+
+Nếu trợ lý trả sai thì **đừng giấu**: 17 ca sai của câu có dấu đã được phân loại ở
+mục 9, và một ca sai mới chỉ xác nhận đúng những gì đã báo cáo. Với câu không dấu,
+xem dòng "đã phục hồi thành" trước: nếu phục hồi sai một từ nói thường thì đó là
+đúng loại lỗi đã nêu ở mục 8.
+""",
+    """
+print(tro_ly.tra_loi("Nguoi lao dong nghi viec co duoc tra luong nhung ngay chua nghi phep khong?"))
 """,
 )
 
@@ -383,36 +480,41 @@ them(
     """
 ## Kết luận
 
-| | |
+| | Recall@10 trên test |
 |---|---|
-| Hệ sạch tốt nhất | Trọng số (BM25 + AITeamVN), Recall@10 = 0,9772 |
-| Hơn ngữ nghĩa thuần | 0,50 điểm phần trăm, tức 4 câu hỏi trên 788 |
-| BM25 đóng góp riêng | 3 câu hỏi |
-| Lý do vẫn giữ BM25 | nhanh hơn khoảng 700 lần, và giải thích được kết quả |
+| CH1. Câu có dấu, hệ lai | 0,9772, hơn ngữ nghĩa thuần 0,50 điểm (4 câu trên 788) |
+| CH2. Câu không dấu, giữ nguyên hệ | 0,1447 |
+| Câu không dấu, BM25 chỉ mục bỏ dấu | 0,7430 |
+| Câu không dấu, phục hồi dấu rồi hệ lai | 0,9670, phục hồi đúng 98,41% âm tiết |
 
-Bài học lớn nhất: chống rò rỉ dữ liệu không dừng ở việc chia lại tập. Mô hình tiền
-huấn luyện mà mình đem dùng cũng có thể đã thấy tập test rồi.
+Bài học: hệ tìm luật đo trên câu có dấu trông gần hoàn hảo, nhưng gặp câu gõ không
+dấu thì sụp. Và chống rò rỉ dữ liệu không dừng ở việc chia lại tập: mô hình tiền
+huấn luyện đem dùng cũng có thể đã thấy tập test.
 """,
     """
 ## Kết luận
 
-| | |
+| | Recall@10 trên test |
 |---|---|
-| Hệ sạch tốt nhất | Trọng số (BM25 + AITeamVN), Recall@10 = 0,9772 |
-| Hơn ngữ nghĩa thuần | 0,50 điểm phần trăm, tức 4 câu hỏi trên 788 |
-| BM25 đóng góp riêng | 3 câu hỏi |
-| Lý do vẫn giữ BM25 | nhanh hơn khoảng 700 lần, và giải thích được kết quả |
+| CH1. Câu có dấu, hệ lai | 0,9772, hơn ngữ nghĩa thuần 0,50 điểm (4 câu trên 788) |
+| CH2. Câu không dấu, giữ nguyên hệ | 0,1447 |
+| Câu không dấu, BM25 chỉ mục bỏ dấu | 0,7430 |
+| Câu không dấu, phục hồi dấu rồi hệ lai | 0,9670, phục hồi đúng 98,41% âm tiết |
 
-Trả lời thẳng câu hỏi của đề tài: **hợp nhất có giúp, nhưng rất ít**. Không gọi
-0,50 điểm phần trăm là đáng kể, nhất là khi mỗi cấu hình chỉ chạy một seed nên
-nhóm không có cơ sở nói về biên độ nhiễu.
+**CH1.** Với câu có dấu, hợp nhất có giúp nhưng rất ít. Không gọi 0,50 điểm phần
+trăm là đáng kể, nhất là khi mỗi cấu hình chỉ chạy một seed nên nhóm không có cơ
+sở nói về biên độ nhiễu.
 
-BM25 vẫn đáng giữ, nhưng vì hai lý do khác chứ không phải điểm số: nó nhanh hơn
-khoảng 700 lần, và nó giải thích được vì sao một điều luật được trả về.
+**CH2.** Với câu không dấu, cả hệ sụp. BM25 trên chỉ mục bỏ dấu là cách rẻ nhất, không
+cần mô hình nào, và lúc này BM25 lại là tầng đứng vững nhất. Cách tốt nhất là phục
+hồi dấu bằng bigram học từ kho luật: hệ về lại gần mức câu có dấu, kém 1,02 điểm.
+Chỗ phục hồi sai tập trung ở từ nói thường mà văn bản luật không dùng.
 
-Bài học lớn nhất nằm ở chỗ khác hẳn: chống rò rỉ dữ liệu không dừng ở việc chia
-lại tập. Mô hình bi-encoder tiếng Việt phổ biến nhất đã được huấn luyện trên chính
-bộ dữ liệu này. Phải đọc model card trước khi tin một con số benchmark.
+Giới hạn cần nói rõ: câu không dấu ở đây tạo bằng máy từ câu gốc, chưa có câu do
+người thật gõ, và chưa đo trên câu gõ dấu một nửa hay sai chính tả.
+
+Bài học về dữ liệu: chống rò rỉ không dừng ở việc chia lại tập. Mô hình bi-encoder
+tiếng Việt phổ biến nhất đã được huấn luyện trên chính bộ dữ liệu này.
 """,
 )
 

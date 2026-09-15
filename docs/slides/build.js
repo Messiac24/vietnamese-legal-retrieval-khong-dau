@@ -902,7 +902,7 @@ Kết: "Em xin hết. Nhóm xin demo code ngay sau đây."`);
   the(s, 0.55, 5.05, 4.35, 1.7, "F4F8FC", BLUE);
   s.addText("Giới hạn", { isTextBox: true, x: 0.78, y: 5.15, w: 3.9, h: 0.3,
     fontFace: F, fontSize: 12.5, bold: true, color: BLUE, margin: 0 });
-  s.addText("Câu không dấu tạo bằng máy từ câu gốc, chưa có câu gõ tay thật, chưa xét gõ dấu một nửa.\nNhãn không đầy đủ, mọi Recall là cận dưới.\nMỗi cấu hình chỉ chạy một seed.",
+  s.addText("Câu không dấu tạo bằng máy từ câu gốc, chưa có câu gõ tay thật, chưa đo câu gõ dấu một nửa.\nNhãn không đầy đủ, mọi Recall là cận dưới.\nMỗi cấu hình chỉ chạy một seed.",
     { isTextBox: true, x: 0.78, y: 5.46, w: 3.9, h: 1.25,
       fontFace: F, fontSize: 10.5, color: INK, lineSpacing: 14, valign: "top", margin: 0 });
 
