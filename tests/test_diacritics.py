@@ -1,4 +1,6 @@
 """Kiểm thử bỏ dấu, nhận diện câu không dấu và phục hồi dấu."""
+import pytest
+
 from vlr import diacritics as dc
 
 KHO = [
@@ -61,3 +63,25 @@ def test_luu_va_nap(tmp_path):
     m.save(tmp_path / "m.pkl")
     m2 = dc.PhucHoiDau.load(tmp_path / "m.pkl")
     assert m2.phuc_hoi("muc phat") == m.phuc_hoi("muc phat")
+
+
+def test_phuc_hoi_am_tiet_viet_hoa_toan_bo():
+    # lỗi cũ: nhánh viết hoa trả lại chính chuỗi người dùng gõ, bỏ mất bản phục hồi
+    m = dc.PhucHoiDau(KHO)
+    assert m.phuc_hoi("MUC PHAT TIEN") == "MỨC PHẠT TIỀN"
+    assert m.phuc_hoi("Muc PHAT tien") == "Mức PHẠT tiền"
+
+
+def test_phuc_hoi_cau_go_dau_mot_nua():
+    m = dc.PhucHoiDau(KHO)
+    assert m.phuc_hoi("Người lao dong duoc nghi viec") == "Người lao động được nghỉ việc"
+
+
+def test_lam_bang_mot_khong_vo_khi_gap_bigram_la():
+    m = dc.PhucHoiDau(KHO, lam=1.0)
+    assert m.phuc_hoi("muc phat") == "mức phạt"
+
+
+def test_do_chinh_xac_bao_loi_khi_lech_so_am_tiet():
+    with pytest.raises(ValueError):
+        dc.do_chinh_xac("mức phạt tiền", "mức phạt")

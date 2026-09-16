@@ -1,10 +1,10 @@
 ﻿tham_so,gia_tri,chi_so,ket_qua
-lambda,0.5,do_chinh_xac_am_tiet_val,0.9843
-lambda,0.7,do_chinh_xac_am_tiet_val,0.9864
-lambda,0.8,do_chinh_xac_am_tiet_val,0.9866
-lambda,0.9,do_chinh_xac_am_tiet_val,0.9867
-lambda,0.95,do_chinh_xac_am_tiet_val,0.9862
-lambda,0.99,do_chinh_xac_am_tiet_val,0.9865
+lambda,0.5,do_chinh_xac_am_tiet_val,0.9854
+lambda,0.7,do_chinh_xac_am_tiet_val,0.9875
+lambda,0.8,do_chinh_xac_am_tiet_val,0.9877
+lambda,0.9,do_chinh_xac_am_tiet_val,0.9878
+lambda,0.95,do_chinh_xac_am_tiet_val,0.9873
+lambda,0.99,do_chinh_xac_am_tiet_val,0.9876
 alpha_khong_dau,0.0,recall@10_val,0.6559
 alpha_khong_dau,0.05,recall@10_val,0.658
 alpha_khong_dau,0.1,recall@10_val,0.658

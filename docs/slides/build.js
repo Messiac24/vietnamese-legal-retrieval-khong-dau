@@ -67,7 +67,11 @@ const TS = docJson(path.join(EVAL, "chosen_params.json"));
 const BEST = docJson(path.join(EVAL, "best_system.json"));
 const DUP_ART = demDong(path.join(AUDIT, "duplicate_articles.csv"));
 const DUP_Q = demDong(path.join(AUDIT, "duplicate_queries.csv"));
-const OVERLAP = demDong(path.join(AUDIT, "query_overlap.csv"));
+const CHONG_LAN = docCsv(path.join(AUDIT, "query_overlap.csv"));
+const OVERLAP = CHONG_LAN.length;
+const TRUNG_ID = CHONG_LAN.filter((h) => h.loai === "trung_id").length;
+const GAN_TRUNG = OVERLAP - TRUNG_ID;
+const DODAI = docJson(path.join(AUDIT, "do_dai_dieu.json"));
 const CONFLICT = docCsv(path.join(AUDIT, "conflicting_gold.csv"));
 const EMPTY = demDong(path.join(AUDIT, "empty_articles.csv"));
 const DIA = docCsv(path.join(AUDIT, "duplicate_docs_diacritics.csv"));
@@ -75,8 +79,14 @@ const NHOM_TRUNG = new Set(docCsv(path.join(AUDIT, "duplicate_articles.csv")).ma
 const CHUNKS = Number(COST["bkai"].so_muc);
 const he = (ten) => MC.find((h) => h.he_thong === ten);
 const HE_SACH = he(BEST.he_sach_tot_nhat);
+// chênh lệch theo Recall@10 giữa hệ lai sạch và tầng ngữ nghĩa sạch
+const loiHopR = 100 * (Number(he(BEST.he_sach_tot_nhat)["recall@10"]) - Number(he("Dense " + BEST.dense_sach)["recall@10"]));
 const BM = he("BM25");
 const DE_SACH = he("Dense " + BEST.dense_sach);
+const POOL = docCsv(path.join(EVAL, "tuning_pooling.csv"));
+const gop = (cach) => POOL.find((h) => h.mo_hinh === BEST.dense_sach && h.gop_doan === cach)["recall@10"];
+const TACH = {};
+docCsv(path.join(EVAL, "khong_dau_tach_tu.csv")).forEach((h) => (TACH[h.cach_tach_tu] = Number(h["recall@10_val"])));
 const KD = docCsv(path.join(EVAL, "khong_dau.csv"));
 const KDP = docJson(path.join(EVAL, "khong_dau_params.json"));
 const KDL = {};
@@ -411,7 +421,7 @@ NẾU THẦY HỎI về tập val: bộ gốc không có val, nhóm cắt val ra
   const s = slide("Vấn đề nặng nhất: nhãn mâu thuẫn",
 `Khoảng 35 giây. Slide này là điểm nhấn của phần kiểm toán.
 
-"${CONFLICT.length} câu hỏi nằm ở cả train lẫn test. Nhưng chúng không phải dòng lặp. Với CẢ ${CONFLICT.length} TRÊN ${CONFLICT.length} CÂU, tệp train chỉ sang một điều luật, tệp test chỉ sang một điều luật khác hẳn."
+"Trong ${OVERLAP} câu chồng lấn ở slide trước, ${TRUNG_ID} câu trùng đúng mã câu hỏi, ${GAN_TRUNG} câu còn lại chỉ diễn đạt gần giống nên không so nhãn trực tiếp được. Nói về ${TRUNG_ID} câu trùng mã: chúng không phải dòng lặp. Với CẢ ${CONFLICT.length} TRÊN ${TRUNG_ID} CÂU, tệp train chỉ sang một điều luật, tệp test chỉ sang một điều luật khác hẳn."
 
 Đọc dòng đầu của bảng: "Cùng câu hỏi về thương tật 25%, train bảo đáp án là Bộ luật Hình sự sửa đổi, test bảo là Bộ luật Tố tụng Hình sự. Cả hai đều là điều luật có thật và đều liên quan."
 
@@ -419,7 +429,7 @@ Chốt: "Nghĩa là bộ nhãn KHÔNG ĐẦY ĐỦ. Mọi con số Recall trong 
 
 Thú nhận luôn nếu thầy hỏi kỹ: bản dựng đầu tiên của script đã gộp nhầm cả hai vào test, làm test phình từ 793 lên 818 cặp. Lỗi bị bắt khi đối chiếu lại số dòng với tệp gốc.`);
 
-  s.addText(`Cả ${CONFLICT.length} trên ${CONFLICT.length} câu hỏi chồng lấn đều có gold ở train KHÁC gold ở test`,
+  s.addText(`Cả ${CONFLICT.length} trên ${TRUNG_ID} câu hỏi trùng đúng mã đều có gold ở train KHÁC gold ở test`,
     { isTextBox: true, x: 0.55, y: 1.02, w: 8.9, h: 0.34,
       fontFace: F, fontSize: 13, bold: true, color: RED, margin: 0 });
 
@@ -505,13 +515,13 @@ NẾU THẦY HỎI "sao tin model card": không kiểm chứng trực tiếp đ�
   const s = slide("Kiến trúc",
 `Khoảng 30 giây. Chỉ nói hộp đỏ và hai nhánh, phần tách từ và gộp max chỉ nói khi bị hỏi.
 
-Hộp đỏ: "Câu hỏi đi vào trước hết một khâu kiểm dấu. Câu có dấu đi thẳng qua. Câu không dấu được phục hồi dấu bằng một mô hình bigram học từ chính kho luật. Phần 5 sẽ nói vì sao cần khâu này."
+Hộp đỏ: "Mọi câu hỏi đều đi qua khâu phục hồi dấu, không phân biệt câu có dấu hay không. Âm tiết người dùng đã gõ dấu thì giữ nguyên, chỉ phần thiếu mới được sửa, nên câu gõ dấu một nửa cũng dùng được. Phần 5 sẽ nói vì sao cần khâu này."
 
 "Sau đó câu hỏi đi vào hai nhánh song song. Nhánh trên là BM25 trên ${nghin(CS.so_dieu_luat)} điều luật đã tách từ. Nhánh dưới là bi-encoder trên ${nghin(CHUNKS)} đoạn, rồi gộp về điều bằng cách lấy điểm cao nhất. Hai nhánh cùng trả top-100, tầng thứ ba hợp nhất lại."
 
 Nhấn vào chỗ tách từ: "Tách từ rất quan trọng với tiếng Việt. Bằng lái xe là một khái niệm. Tách theo khoảng trắng thì chữ bằng khớp nhầm với bằng chứng."
 
-Nhấn vào chỗ gộp max: "Lấy điểm cao nhất chứ không lấy trung bình, vì câu trả lời thường nằm gọn trong một khoản. Lấy trung bình thì các khoản không liên quan kéo điểm xuống. Nhóm đo cả hai cách trên val: max ${so(0.9563)} còn mean ${so(0.9127)}."`);
+Nhấn vào chỗ gộp max: "Lấy điểm cao nhất chứ không lấy trung bình, vì câu trả lời thường nằm gọn trong một khoản. Lấy trung bình thì các khoản không liên quan kéo điểm xuống. Nhóm đo cả hai cách trên val: max ${so(gop("max"))} còn mean ${so(gop("mean"))}."`);
 
   s.addImage({ path: "img/architecture.png", x: 0.35, y: 1.15, w: 9.3, h: 4.0 });
 
@@ -524,7 +534,7 @@ Nhấn vào chỗ gộp max: "Lấy điểm cao nhất chứ không lấy trung 
   the(s, 3.58, 5.30, 2.85, 1.45, "FFF8F0", CAM);
   s.addText("Gộp đoạn bằng max", { isTextBox: true, x: 3.78, y: 5.40, w: 2.5, h: 0.28,
     fontFace: F, fontSize: 11.5, bold: true, color: "B9770E", margin: 0 });
-  s.addText(`Đo trên val: max ${so(0.9563)} so với mean ${so(0.9127)}`, { isTextBox: true, x: 3.78, y: 5.70, w: 2.5, h: 0.9,
+  s.addText(`Đo trên val: max ${so(gop("max"))} so với mean ${so(gop("mean"))}`, { isTextBox: true, x: 3.78, y: 5.70, w: 2.5, h: 0.9,
     fontFace: F, fontSize: 10.5, color: INK, lineSpacing: 14, valign: "top", margin: 0 });
 
   the(s, 6.61, 5.30, 2.85, 1.45, "EAF6EE", GREEN);
@@ -540,7 +550,7 @@ function slideChiaDoan() {
   const s = slide("Phụ lục: vì sao bắt buộc phải chia đoạn",
 `PHỤ LỤC, không trình bày trong 7 phút. Mở slide này khi thầy hỏi về chia đoạn.
 
-"PhoBERT chỉ nhận 256 token, tương đương khoảng 140 từ tiếng Việt. Đường đứt đỏ là cái trần đó. ${so(61.1, 1)} phần trăm điều luật nằm bên phải đường này."
+"PhoBERT chỉ nhận 256 token, tương đương khoảng 140 từ tiếng Việt. Đường đứt đỏ là cái trần đó. ${so(DODAI.ty_le_vuot_tran_pct, 1)} phần trăm điều luật nằm bên phải đường này."
 
 "Cắt cụt là vứt phần đuôi của phần lớn số điều. Mà đuôi điều luật thường là chỗ ghi mức phạt và các trường hợp ngoại lệ, đúng thứ người dân hay hỏi."
 
@@ -574,7 +584,7 @@ NẾU THẦY HỎI "sao không dùng mô hình ngữ cảnh dài": có, AITeamVN
 
 Chỉ vào ba dòng trên: "Ba dòng đầu là các hệ SẠCH. BM25 một mình được Recall@10 ${so(BM["recall@10"])}. Ngữ nghĩa một mình ${so(DE_SACH["recall@10"])}. Hợp nhất có trọng số ${so(HE_SACH["recall@10"])}."
 
-Chỉ vào khung xanh lá, trả lời thẳng câu hỏi 1: "Hợp nhất chỉ hơn ngữ nghĩa thuần ${so(loiHop, 2)} điểm phần trăm, tức ${soCau} câu trên ${SPLIT.test.so_cau_hoi}. Có cải thiện nhưng rất nhỏ. Và cách ghép có trọng số thắng RRF, đúng như Bruch và cộng sự."
+Chỉ vào khung xanh lá, trả lời thẳng câu hỏi 1: "Hợp nhất chỉ hơn ngữ nghĩa thuần ${so(loiHop, 2)} điểm ở tỷ lệ câu có gold trong top-10, tức ${soCau} câu trên ${SPLIT.test.so_cau_hoi}; tính theo Recall@10 thì chênh ${so(loiHopR, 2)} điểm. Có cải thiện nhưng rất nhỏ. Và cách ghép có trọng số thắng RRF, đúng như Bruch và cộng sự."
 
 Chỉ vào hai dòng xám: "Hai dòng dưới trông đẹp hơn, nhưng dùng mô hình đã thấy dữ liệu test. Nhóm để đây để thấy một con số benchmark bị thổi lên dễ thế nào."
 
@@ -613,7 +623,7 @@ NẾU THẦY HỎI về bảng bốn ô BM25 và ngữ nghĩa: mở phụ lục 
   s.addText("Trả lời CH1: có, nhưng rất nhỏ", { isTextBox: true, x: 0.65, y: 4.46, w: 4.05, h: 0.3,
     fontFace: F, fontSize: 12.5, bold: true, color: GREEN, margin: 0 });
   s.addText([
-    { text: `Hợp nhất hơn ngữ nghĩa thuần ${so(loiHop, 2)} điểm phần trăm, tức ${soCau} câu trên ${SPLIT.test.so_cau_hoi}.`, options: { bold: true, breakLine: true } },
+    { text: `Hợp nhất hơn ngữ nghĩa thuần ${so(loiHop, 2)} điểm ở tỷ lệ câu có gold trong top-10, tức ${soCau} câu trên ${SPLIT.test.so_cau_hoi}. Theo Recall@10 là ${so(loiHopR, 2)} điểm.`, options: { bold: true, breakLine: true } },
     { text: `Riêng BM25 cứu được ${chiBm} câu mà ngữ nghĩa bỏ lỡ.`, options: { breakLine: true } },
     { text: `Tổng trọng số thắng RRF: Recall@1 ${so(HE_SACH["recall@1"])} so với ${so(RRF_S["recall@1"])}, khớp Bruch và cs.`, options: {} },
   ], { isTextBox: true, x: 0.65, y: 4.80, w: 4.05, h: 1.85,
@@ -770,7 +780,8 @@ Chỉ vào thanh cam: "Chỉ cần lập chỉ mục BM25 trên văn bản đã 
 Chỉ vào thanh xanh lá: "Và cách tốt nhất là phục hồi dấu trước khi tìm. Slide sau."
 
 NẾU THẦY HỎI "vì sao mô hình ngữ nghĩa sụp": giả thuyết của nhóm là mô hình học chủ yếu trên văn bản có dấu, nên 'phat' và 'phạt' bị tách thành những token khác hẳn nhau. Nhóm chưa kiểm chứng trực tiếp giả thuyết này.
-NẾU THẦY HỎI "câu không dấu này có thật không": là câu gốc bị bỏ dấu bằng máy, nên nhãn giữ nguyên được. Chưa có câu gõ tay thật, ghi rõ ở phần giới hạn.`);
+NẾU THẦY HỎI "câu không dấu này có thật không": là câu gốc bị bỏ dấu bằng máy, nên nhãn giữ nguyên được. Chưa có câu gõ tay thật, ghi rõ ở phần giới hạn.
+NẾU THẦY HỎI "thanh BM25 bỏ dấu giảm là do bỏ dấu hay do đổi cách tách từ": chỉ mục đó đổi cả hai. Nhóm đo tách riêng trên val: pyvi tách từ còn dấu ${so(TACH["pyvi tách từ, còn dấu"])}, âm tiết còn dấu ${so(TACH["âm tiết, còn dấu"])}, âm tiết bỏ dấu ${so(TACH["âm tiết, bỏ dấu"])}. Đổi cách tách từ mất ${so(TACH["pyvi tách từ, còn dấu"] - TACH["âm tiết, còn dấu"], 3)}, bỏ dấu mất thêm ${so(TACH["âm tiết, còn dấu"] - TACH["âm tiết, bỏ dấu"], 3)}.`);
 
   s.addText([
     { text: "Có dấu:  ", options: { bold: true } },
@@ -792,7 +803,7 @@ NẾU THẦY HỎI "câu không dấu này có thật không": là câu gốc b�
   the(s, 5.10, 5.52, 4.35, 1.25, "FFF8F0", CAM);
   s.addText(`BM25 bỏ dấu: ${pt(bmBo["recall@10"])}%, không cần mô hình`, { isTextBox: true, x: 5.33, y: 5.60, w: 3.9, h: 0.28,
     fontFace: F, fontSize: 12, bold: true, color: "B9770E", margin: 0 });
-  s.addText("Ở câu có dấu BM25 gần như không góp gì. Ở câu không dấu nó lại là tầng đứng vững nhất.",
+  s.addText(`Ở câu có dấu BM25 gần như không góp gì. Ở câu không dấu nó lại là tầng đứng vững nhất. Chỉ mục này đổi cả cách tách từ: đo trên val, đổi tách từ mất ${so(TACH["pyvi tách từ, còn dấu"] - TACH["âm tiết, còn dấu"], 3)}, bỏ dấu mất thêm ${so(TACH["âm tiết, còn dấu"] - TACH["âm tiết, bỏ dấu"], 3)}.`,
     { isTextBox: true, x: 5.33, y: 5.90, w: 3.9, h: 0.82,
       fontFace: F, fontSize: 10.5, color: INK, lineSpacing: 14, valign: "top", margin: 0 });
 }
@@ -800,19 +811,20 @@ NẾU THẦY HỎI "câu không dấu này có thật không": là câu gốc b�
 /* ========= 12. SỬA BẰNG PHỤC HỒI DẤU ========= */
 {
   const coHop = kd("có dấu", "giữ nguyên", "Hợp nhất"), phHop = kd("không dấu", "phục hồi dấu", "Hợp nhất");
-  const dtCo = kd("có dấu", "định tuyến", "Hợp nhất");
+  const coPh = kd("có dấu", "phục hồi dấu", "Hợp nhất");
+  const nuaGiu = kd("nửa dấu", "giữ nguyên", "Hợp nhất"), nuaPh = kd("nửa dấu", "phục hồi dấu", "Hợp nhất");
   const saiNhom = KDL["sai ít nhất một âm tiết"], mat = KDL["mất do phục hồi sai"], duoc = KDL["được nhờ phục hồi"];
   const chenh = 100 * (Number(coHop["recall@10"]) - Number(phHop["recall@10"]));
   const s = slide("Sửa bằng phục hồi dấu: bigram học từ kho luật",
 `Khoảng 40 giây. Trả lời câu hỏi nghiên cứu 2.
 
-Khung trái: "Cách làm rất đơn giản. Đếm cặp âm tiết liền nhau trên ${so(KDP.so_am_tiet / 1e6, 1)} triệu âm tiết của chính kho luật. Một âm tiết không dấu như 'phat' có nhiều ứng viên: phát, phạt, phắt. Thuật toán Viterbi chọn chuỗi ứng viên có xác suất cao nhất. Không cần tải mô hình nào, học trong vài giây."
+Khung trái: "Cách làm rất đơn giản. Đếm cặp âm tiết liền nhau trên ${so(KDP.so_am_tiet / 1e6, 1)} triệu âm tiết của chính kho luật. Một âm tiết không dấu như 'phat' có nhiều ứng viên: phát, phạt, phắt. Thuật toán Viterbi chọn chuỗi ứng viên có xác suất cao nhất. Không cần tải mô hình nào, đếm xong trong ${KDP.giay_hoc_mo_hinh} giây."
 
 Khung phải: "Kết quả: ${pt(KDP.do_chinh_xac_am_tiet_test)} phần trăm âm tiết đúng, khoảng ${so(KDP.do_tre_phuc_hoi_ms, 1)} mili giây mỗi câu. Hệ lai lên lại ${pt(phHop["recall@10"])} phần trăm, chỉ kém câu có dấu ${so(chenh, 2)} điểm."
 
 Khung đỏ, nói thẳng chỗ sai: "Phục hồi sai rơi vào từ nói thường mà văn bản luật không dùng. Tài xế thành tải xe, máu thành mẫu. Đây lại chính là khoảng cách từ vựng ở slide 3."
 
-Khung xanh lá: "Bộ định tuyến không nhận nhầm câu gốc nào, nên câu có dấu vẫn giữ nguyên ${pt(dtCo["recall@10"])}."
+Khung xanh lá: "Không cần hỏi câu này có dấu hay chưa. Cho mọi câu đi qua khâu phục hồi dấu: câu vốn đủ dấu vẫn giữ ${pt(coPh["recall@10"])}, còn câu gõ dấu một nửa thì từ ${pt(nuaGiu["recall@10"])} lên ${pt(nuaPh["recall@10"])}."
 
 NẾU THẦY HỎI "sao không dùng mô hình phục hồi dấu có sẵn": các mô hình dịch máy đạt khoảng 97 phần trăm, cùng mức với bigram này, nhưng phải tải và chạy thêm một mô hình lớn. Nhóm chưa so trên cùng bộ dữ liệu nên không nói hơn kém.
 NẾU THẦY HỎI "sao không mã hóa lại cả kho ở dạng không dấu": chưa đo, nên không trả lời bằng số được. Phục hồi dấu có lợi thế là giữ nguyên toàn bộ hệ phía sau.`);
@@ -854,8 +866,8 @@ NẾU THẦY HỎI "sao không mã hóa lại cả kho ở dạng không dấu":
 
   the(s, 0.42, 5.66, 9.16, 1.1, "EAF6EE", GREEN);
   s.addText([
-    { text: "Bộ định tuyến: ", options: { bold: true, color: GREEN } },
-    { text: `${KDP.cau_goc_bi_nhan_la_khong_dau} câu gốc bị nhận nhầm là không dấu, nên câu có dấu vẫn giữ nguyên Recall@10 ${pt(dtCo["recall@10"])}%. Trong demo, trợ lý tra cứu dùng đúng đường chạy này và trả lời bằng cách trích nguyên văn khoản luật.`, options: {} },
+    { text: "Cho mọi câu đi qua, không cần hỏi câu có dấu chưa: ", options: { bold: true, color: GREEN } },
+    { text: `câu vốn đủ dấu vẫn giữ Recall@10 ${pt(coPh["recall@10"])}%, câu gõ dấu một nửa lên từ ${pt(nuaGiu["recall@10"])}% thành ${pt(nuaPh["recall@10"])}%. Trợ lý tra cứu trong demo chạy đúng đường này.`, options: {} },
   ], { isTextBox: true, x: 0.64, y: 5.72, w: 8.7, h: 0.98,
        fontFace: F, fontSize: 11.5, color: INK, lineSpacing: 16, valign: "middle", margin: 0 });
 }
@@ -873,7 +885,7 @@ NẾU THẦY HỎI "sao không mã hóa lại cả kho ở dạng không dấu":
   const s = slide("Kết luận",
 `Khoảng 40 giây. Nói chậm, đây là ấn tượng cuối cùng.
 
-"Một, câu hỏi nghiên cứu 1: với câu có dấu, hợp nhất chỉ hơn ngữ nghĩa thuần ${so(loiHop, 2)} điểm phần trăm, tức ${soCau} câu trên ${SPLIT.test.so_cau_hoi}. Có cải thiện nhưng rất nhỏ."
+"Một, câu hỏi nghiên cứu 1: với câu có dấu, hợp nhất chỉ hơn ngữ nghĩa thuần ${so(loiHopR, 2)} điểm Recall@10, tức ${soCau} câu trên ${SPLIT.test.so_cau_hoi}. Có cải thiện nhưng rất nhỏ."
 
 "Hai, câu hỏi nghiên cứu 2, và đây là điều nhóm muốn thầy nhớ: khi người dân gõ không dấu, mô hình ngữ nghĩa tốt nhất chỉ còn ${pt(khDe["recall@10"])} phần trăm. Một mô hình bigram nhỏ học từ chính kho luật kéo hệ về ${pt(phHop["recall@10"])}. Và BM25, tầng tưởng như vô dụng, lại là tầng đứng vững nhất khi không có dấu."
 
@@ -883,7 +895,7 @@ Kết: "Em xin hết. Nhóm xin demo code ngay sau đây."`);
 
   const muc = [
     [GREEN, "CH1. Câu có dấu: hợp nhất có cải thiện, nhưng rất nhỏ",
-     `Hơn ngữ nghĩa thuần ${so(loiHop, 2)} điểm phần trăm, tức ${soCau} câu trên ${SPLIT.test.so_cau_hoi}. Tổng trọng số thắng RRF. BM25 nhanh hơn khoảng ${Math.round(Number(DE_SACH["latency_p50_ms"]) / Number(BM["latency_p50_ms"]))} lần và giải thích được kết quả.`],
+     `Hơn ngữ nghĩa thuần ${so(loiHopR, 2)} điểm Recall@10, tức ${soCau} câu trên ${SPLIT.test.so_cau_hoi}. Tổng trọng số thắng RRF. BM25 nhanh hơn khoảng ${Math.round(Number(DE_SACH["latency_p50_ms"]) / Number(BM["latency_p50_ms"]))} lần và giải thích được kết quả.`],
     [RED, "CH2. Câu không dấu: hệ sụp, phục hồi dấu kéo lại gần hết",
      `Hệ lai giữ nguyên chỉ còn ${pt(khHop["recall@10"])}%. BM25 bỏ dấu đạt ${pt(bmBo["recall@10"])}% không cần mô hình. Phục hồi dấu bằng bigram đưa hệ về ${pt(phHop["recall@10"])}%, ${pt(KDP.do_chinh_xac_am_tiet_test)}% âm tiết đúng.`],
     [BLUE, "Chống rò rỉ không dừng ở việc chia lại tập",
@@ -902,7 +914,7 @@ Kết: "Em xin hết. Nhóm xin demo code ngay sau đây."`);
   the(s, 0.55, 5.05, 4.35, 1.7, "F4F8FC", BLUE);
   s.addText("Giới hạn", { isTextBox: true, x: 0.78, y: 5.15, w: 3.9, h: 0.3,
     fontFace: F, fontSize: 12.5, bold: true, color: BLUE, margin: 0 });
-  s.addText("Câu không dấu tạo bằng máy từ câu gốc, chưa có câu gõ tay thật, chưa đo câu gõ dấu một nửa.\nNhãn không đầy đủ, mọi Recall là cận dưới.\nMỗi cấu hình chỉ chạy một seed.",
+  s.addText("Câu không dấu và câu nửa dấu đều do máy bỏ dấu từ câu gốc, chưa có câu người thật gõ.\nNhãn không đầy đủ, mọi Recall là cận dưới.\nMỗi cấu hình chỉ chạy một seed.",
     { isTextBox: true, x: 0.78, y: 5.46, w: 3.9, h: 1.25,
       fontFace: F, fontSize: 10.5, color: INK, lineSpacing: 14, valign: "top", margin: 0 });
 
@@ -926,7 +938,7 @@ slidePhanTichLoi();
   const tl = phan.split(/\r?\n/).map((l) => l.match(/^(\d+)\.\s+(.*)$/)).filter(Boolean)
     .map((m) => `[${m[1]}] ${m[2].replace(/\*/g, "")}`);
   if (tl.length === 0) throw new Error("Không đọc được tài liệu tham khảo từ NGHIEN_CUU_LIEN_QUAN.md");
-  const s = slide("Tài liệu tham khảo",
+  const s = slide("Phụ lục: tài liệu tham khảo",
 `PHỤ LỤC. Danh sách đọc thẳng từ docs/NGHIEN_CUU_LIEN_QUAN.md, không gõ lại trong slide.`);
   const nua = Math.ceil(tl.length / 2);
   [tl.slice(0, nua), tl.slice(nua)].forEach((cot, i) => {

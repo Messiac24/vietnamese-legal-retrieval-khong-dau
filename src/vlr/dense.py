@@ -80,7 +80,11 @@ class DenseIndex:
         self._doan_cua: dict[str, list[int]] | None = None
 
     def doan_khop_nhat(self, query_vec: np.ndarray, article_id: str) -> tuple[str, float] | None:
-        """Đoạn khớp câu hỏi nhất trong một điều luật, tức khoản quyết định điểm max."""
+        """Đoạn khớp câu hỏi nhất trong một điều luật.
+
+        Với pooling max thì đây đúng là khoản đã quyết định điểm của điều; với
+        pooling mean thì chỉ là khoản khớp nhất, không phải khoản quyết định điểm.
+        """
         if self._doan_cua is None:
             self._doan_cua = {}
             for i, c in enumerate(self.chunk_ids):
@@ -137,6 +141,7 @@ class DenseIndex:
         self.chunk_ids = list(chunk_ids)
         self.embeddings = vec.astype(np.float16)
         self._article_of = {c: article_of(c) for c in self.chunk_ids}
+        self._doan_cua = None   # đệm cũ trỏ theo chỉ số của bộ đoạn trước
 
     def encode_queries(self, texts: list[str], batch_size: int = 256) -> np.ndarray:
         model = self._load_model()

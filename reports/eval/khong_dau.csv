@@ -7,8 +7,13 @@ không dấu,giữ nguyên,Ngữ nghĩa,0.0317,0.0876,0.1244,0.0582
 không dấu,giữ nguyên,Hợp nhất,0.0343,0.099,0.1447,0.0649
 không dấu,chỉ mục bỏ dấu,BM25 bỏ dấu,0.323,0.6447,0.743,0.4597
 không dấu,chỉ mục bỏ dấu,Hợp nhất BM25 bỏ dấu,0.3687,0.6612,0.7557,0.4944
-không dấu,phục hồi dấu,BM25,0.46,0.7627,0.8395,0.5881
-không dấu,phục hồi dấu,Ngữ nghĩa,0.7659,0.9448,0.9645,0.8458
-không dấu,phục hồi dấu,Hợp nhất,0.7709,0.9511,0.967,0.8507
-có dấu,định tuyến,Hợp nhất,0.7824,0.9537,0.9772,0.8619
-không dấu,định tuyến,Hợp nhất,0.7709,0.9511,0.967,0.8507
+không dấu,phục hồi dấu,BM25,0.46,0.764,0.8395,0.5883
+không dấu,phục hồi dấu,Ngữ nghĩa,0.7671,0.9448,0.9645,0.8465
+không dấu,phục hồi dấu,Hợp nhất,0.7722,0.9511,0.967,0.8513
+nửa dấu,giữ nguyên,BM25,0.1237,0.2963,0.3763,0.197
+nửa dấu,giữ nguyên,Ngữ nghĩa,0.4283,0.6764,0.7341,0.533
+nửa dấu,giữ nguyên,Hợp nhất,0.4524,0.6992,0.7481,0.5575
+nửa dấu,phục hồi dấu,BM25,0.4651,0.764,0.8458,0.5923
+nửa dấu,phục hồi dấu,Ngữ nghĩa,0.7735,0.9461,0.9683,0.8513
+nửa dấu,phục hồi dấu,Hợp nhất,0.7786,0.9524,0.9721,0.8567
+có dấu,phục hồi dấu,Hợp nhất,0.7824,0.9549,0.9772,0.8619

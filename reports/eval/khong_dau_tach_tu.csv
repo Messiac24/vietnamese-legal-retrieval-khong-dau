@@ -1,0 +1,4 @@
+﻿cach_tach_tu,cau_hoi,recall@10_val
+"pyvi tách từ, còn dấu",có dấu,0.8399
+"âm tiết, còn dấu",có dấu,0.7931
+"âm tiết, bỏ dấu",không dấu,0.6559

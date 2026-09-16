@@ -35,8 +35,10 @@ class TroLyTraCuu:
         self.ph = diacritics.PhucHoiDau.load(config.PHUC_HOI_DAU_PATH)
 
     def tim(self, cau_hoi: str, k: int = 3) -> dict:
-        co_dau = diacritics.co_dau(cau_hoi)
-        cau_tim = cau_hoi if co_dau else self.ph.phuc_hoi(cau_hoi)
+        # Phục hồi dấu cho mọi câu, không hỏi câu có dấu hay không. Âm tiết đã
+        # có dấu được giữ nguyên, nên câu gõ dấu một nửa cũng được sửa phần
+        # thiếu. Giá phải trả đo trên val: 0,9989 âm tiết đúng với câu đủ dấu.
+        cau_tim = self.ph.phuc_hoi(cau_hoi)
         K = config.TOPK_FUSION
         bm = self.bm.search_tokens(textnorm.tokens(cau_tim), K)
         qv = self.de.encode_queries([cau_tim])
@@ -46,25 +48,33 @@ class TroLyTraCuu:
         ket_qua = []
         for aid, diem in hop[:k]:
             khop = self.de.doan_khop_nhat(qv[0], aid)
+            tu_khop = explain.matched_terms(
+                cau_tim, f"{self.tieu_de.get(aid, '')} {self.van_ban.get(aid, '')}", self.idf)
             ket_qua.append({
                 "dieu_luat": aid,
                 "tieu_de": self.tieu_de.get(aid, ""),
                 "diem": round(diem, 4),
+                "so_tu_khop": len(tu_khop),
                 "khoan": trich_khoan(self.doan.get(khop[0], "") if khop else "",
                                      self.tieu_de.get(aid, "")),
-                "tu_khop": explain.to_chuoi(explain.matched_terms(
-                    cau_tim, f"{self.tieu_de.get(aid, '')} {self.van_ban.get(aid, '')}",
-                    self.idf), 4),
+                "tu_khop": explain.to_chuoi(tu_khop, 4),
             })
-        return {"cau_hoi": cau_hoi, "da_phuc_hoi_dau": not co_dau,
+        return {"cau_hoi": cau_hoi, "da_phuc_hoi_dau": cau_tim != cau_hoi,
                 "cau_dung_de_tim": cau_tim, "ket_qua": ket_qua}
 
     def tra_loi(self, cau_hoi: str) -> str:
         r = self.tim(cau_hoi)
         dong = [f"Bạn hỏi: {r['cau_hoi']}"]
         if r["da_phuc_hoi_dau"]:
-            dong.append(f"(Câu không dấu, đã phục hồi thành: {r['cau_dung_de_tim']})")
+            dong.append(f"(Đã phục hồi dấu thành: {r['cau_dung_de_tim']})")
+        if not r["ket_qua"]:
+            return "\n".join(dong + ["", "Không tìm được điều luật nào."])
         dau, *con_lai = r["ket_qua"]
+        if dau["so_tu_khop"] == 0:
+            # Không một từ nào của câu hỏi có mặt trong điều luật: gần như chắc
+            # chắn câu hỏi nằm ngoài phạm vi kho luật đang có
+            dong.append("(Cảnh báo: không từ nào trong câu hỏi khớp điều luật bên dưới, "
+                        "nhiều khả năng câu hỏi nằm ngoài phạm vi kho)")
         dong += [
             "",
             f"Điều luật phù hợp nhất: {dau['tieu_de']}  [{dau['dieu_luat']}]",

@@ -14,15 +14,17 @@ Hai câu hỏi nghiên cứu, chấm trên 788 câu hỏi test, tham số chốt
 
 | | Recall@10 |
 |---|---|
-| **CH1.** Câu có dấu, hệ lai BM25 + AITeamVN | 0,9772, hơn ngữ nghĩa thuần 0,50 điểm (4 câu trên 788) |
+| **CH1.** Câu có dấu, hệ lai BM25 + AITeamVN | 0,9772, hơn ngữ nghĩa thuần 0,51 điểm (4 câu trên 788) |
 | **CH2.** Cùng câu đó bỏ dấu, giữ nguyên hệ | 0,1447 |
 | Câu không dấu, BM25 trên chỉ mục bỏ dấu | 0,7430 |
 | Câu không dấu, phục hồi dấu bằng bigram rồi hệ lai | **0,9670** |
+| Câu gõ dấu một nửa, giữ nguyên hệ | 0,7481 |
+| Câu gõ dấu một nửa, phục hồi dấu rồi hệ lai | **0,9721** |
 
 Với câu có dấu, hợp nhất có cải thiện nhưng rất nhỏ. Khi người dân gõ không dấu,
 mô hình ngữ nghĩa sạch tốt nhất tụt từ 0,9721 xuống 0,1244. Một mô hình bigram âm
-tiết học từ chính kho luật phục hồi đúng 98,41% âm tiết trong khoảng 1 mili giây mỗi
-câu và kéo hệ về 0,9670.
+tiết học từ chính kho luật phục hồi đúng 98,45% âm tiết trong khoảng 0,9 mili giây
+mỗi câu và kéo hệ về 0,9670.
 
 Phát hiện phụ về dữ liệu: bộ dữ liệu công bố có 24 trên 24 câu hỏi chồng lấn mang
 nhãn mâu thuẫn, và mô hình bi-encoder tiếng Việt phổ biến nhất đã được huấn luyện
@@ -86,7 +88,7 @@ Thời gian thật đã đo trên RTX 5060 Ti:
 | Chấm điểm trên test | 1,3 phút |
 | Câu không dấu: chỉ mục bỏ dấu, phục hồi dấu, chấm test | 2,5 phút |
 
-Kiểm thử, 122 test:
+Kiểm thử, 130 test:
 
 ```bash
 C:/Python314/python.exe -m pytest -q
@@ -274,36 +276,47 @@ Câu không dấu tạo bằng cách bỏ dấu 788 câu hỏi test bằng máy,
 | không dấu | giữ nguyên | Hệ lai | 0,0343 | 0,1447 | 0,0649 |
 | không dấu | chỉ mục bỏ dấu | BM25 | 0,3230 | 0,7430 | 0,4597 |
 | không dấu | chỉ mục bỏ dấu | BM25 bỏ dấu + ngữ nghĩa, alpha 0,25 | 0,3687 | 0,7557 | 0,4944 |
-| không dấu | phục hồi dấu | Ngữ nghĩa | 0,7659 | 0,9645 | 0,8458 |
-| **không dấu** | **phục hồi dấu** | **Hệ lai** | **0,7709** | **0,9670** | **0,8507** |
+| không dấu | phục hồi dấu | Ngữ nghĩa | 0,7671 | 0,9645 | 0,8465 |
+| **không dấu** | **phục hồi dấu** | **Hệ lai** | **0,7722** | **0,9670** | **0,8513** |
+| nửa dấu | giữ nguyên | Hệ lai | 0,4524 | 0,7481 | 0,5575 |
+| **nửa dấu** | **phục hồi dấu** | **Hệ lai** | **0,7786** | **0,9721** | **0,8567** |
+| có dấu | vẫn cho phục hồi | Hệ lai | 0,7824 | 0,9772 | 0,8619 |
 
 **Phục hồi dấu** (`src/vlr/diacritics.py`): mô hình bigram trên âm tiết, nội suy với
 unigram, học từ 18,6 triệu âm tiết của kho điều luật cộng câu hỏi train, giải bằng
 Viterbi. `lambda = 0,9` chốt trên val. Âm tiết người dùng đã gõ dấu thì giữ nguyên.
-Trên test: 98,41% âm tiết đúng, 619 trên 788 câu đúng hoàn toàn, khoảng 1 mili giây
-mỗi câu.
+Trên test: 98,45% âm tiết đúng, 622 trên 788 câu đúng hoàn toàn, khoảng 0,9 mili
+giây mỗi câu.
 
 **Sai ở đâu**: từ nói thường mà văn bản luật không dùng, như "tài xế" thành "tải
-xe", "máu" thành "mẫu". Trong 169 câu sai ít nhất một âm tiết, tỷ lệ tìm đúng trong
-top-10 tụt từ 94,67% xuống 89,94%: mất 9 câu, được 1 câu.
+xe", "máu" thành "mẫu". Trong 166 câu sai ít nhất một âm tiết, tỷ lệ tìm đúng trong
+top-10 tụt từ 94,58% xuống 89,76%: mất 9 câu, được 1 câu.
 
-**Bộ định tuyến**: 0 trên 1.269 câu hỏi gốc của val và test bị nhận nhầm là không
-dấu, nên câu có dấu đi thẳng qua hệ cũ và giữ nguyên 0,9772.
+**Không có cổng chặn**: mọi câu đều đi qua khâu phục hồi dấu. Bản đầu chỉ chạy phục
+hồi khi `co_dau` báo câu không có dấu nào, nhưng hàm đó xét cả chuỗi nên câu gõ dấu
+một nửa không bao giờ được sửa. Bỏ cổng đi thì câu nửa dấu lên từ 0,7481 thành
+0,9721, còn câu vốn đủ dấu vẫn giữ 0,9772 vì 769 trên 788 câu không bị đổi chữ nào.
+
+**Bỏ dấu hay đổi cách tách từ**: chỉ mục bỏ dấu đổi cả hai thứ cùng lúc. Đo tách
+riêng trên val ([`reports/eval/khong_dau_tach_tu.csv`](reports/eval/khong_dau_tach_tu.csv)):
+pyvi tách từ còn dấu 0,8399, âm tiết còn dấu 0,7931, âm tiết bỏ dấu 0,6559. Đổi cách
+tách từ mất 0,047, bỏ dấu mất thêm 0,137.
 
 **Trợ lý tra cứu** (`src/vlr/tra_cuu.py`, mục 10 của notebook): chatbot kiểu truy hồi.
-Nó phục hồi dấu nếu cần, tìm bằng hệ lai, rồi trả lời bằng cách trích nguyên văn
-khoản luật có điểm cao nhất kèm số hiệu điều. Không có mô hình sinh chữ nên không bịa
-được câu nào.
+Nó phục hồi dấu, tìm bằng hệ lai, rồi trả lời bằng cách trích nguyên văn khoản luật
+có điểm cao nhất kèm số hiệu điều. Không có mô hình sinh chữ nên mọi chữ in ra đều
+là chữ có sẵn trong kho. Khi không một từ nào của câu hỏi khớp điều luật trả về, trợ
+lý in kèm một dòng cảnh báo, vì lúc đó gần như chắc chắn câu hỏi nằm ngoài kho.
 
 ## 11. Giới hạn
 
-1. **Câu không dấu tạo bằng máy.** Chưa có câu do người thật gõ, và chưa đo trên câu
-   gõ dấu một nửa, sai chính tả hay viết tắt.
+1. **Câu không dấu tạo bằng máy.** Cả câu bỏ hết dấu lẫn câu nửa dấu đều do máy bỏ
+   dấu từ câu gốc. Chưa có câu do người thật gõ, chưa đo câu sai chính tả hay viết tắt.
 2. **Nhãn không đầy đủ.** 24 câu hỏi có hai bộ nhãn khác nhau trong chính bộ dữ
    liệu gốc. Mọi con số Recall là cận dưới.
 3. **Một seed.** Mỗi cấu hình chạy đúng một lần, nên không nói được gì về biên độ
    nhiễu giữa các lần chạy.
-4. **F2@10 không so được với bảng xếp hạng Zalo.** Ban tổ chức chấm trên tập test
+4. **F2@10 không so được với Zalo.** Ban tổ chức chấm trên tập test
    riêng không công khai, và cho phép trả về số lượng kết quả thay đổi được. Con
    số F2@10 ở đây cố định k = 10 nên thấp một cách máy móc.
 5. **Không có cross-encoder xếp hạng lại.** Nằm ở hướng phát triển, cùng với việc cho

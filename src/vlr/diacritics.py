@@ -55,7 +55,9 @@ class PhucHoiDau:
         if truoc is None or self.uni[truoc] == 0:
             return math.log(p_uni)
         p_bi = self.bi.get((truoc, w), 0) / self.uni[truoc]
-        return math.log(self.lam * p_bi + (1 - self.lam) * p_uni)
+        p = self.lam * p_bi + (1 - self.lam) * p_uni
+        # lam = 1 biến thành bigram thuần, gặp bigram chưa thấy là p = 0
+        return math.log(p) if p > 0 else -math.inf
 
     def _ung_vien(self, w: str) -> list[str]:
         # Âm tiết người dùng đã gõ có dấu thì giữ nguyên, chỉ phục hồi phần thiếu
@@ -90,7 +92,7 @@ class PhucHoiDau:
         for i, w in zip(vi_tri, moi):
             goc = phan[i]
             if goc[:1].isupper():
-                w = goc.upper() if goc.isupper() and len(goc) > 1 else w[:1].upper() + w[1:]
+                w = w.upper() if goc.isupper() and len(goc) > 1 else w[:1].upper() + w[1:]
             phan[i] = w
         return "".join(phan)
 
@@ -114,4 +116,6 @@ class PhucHoiDau:
 def do_chinh_xac(goc: str, phuc_hoi: str) -> tuple[int, int]:
     """(số âm tiết khớp, tổng số âm tiết), so không phân biệt hoa thường."""
     a, b = am_tiet(goc), am_tiet(phuc_hoi)
+    if len(a) != len(b):
+        raise ValueError(f"lệch số âm tiết: {len(a)} so với {len(b)}")
     return sum(x == y for x, y in zip(a, b)), len(a)

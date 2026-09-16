@@ -90,12 +90,16 @@ Card RTX 5060 Ti là kiến trúc Blackwell, cần wheel `cu130`. Nếu thấy h
 thì mọi phần mã hóa sẽ chạy trên CPU và chậm hàng chục lần.
 """,
     """
-import json, sys, warnings
+import json, os, sys, warnings
 from pathlib import Path
 
 ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
 sys.path.insert(0, str(ROOT / "src"))
 warnings.filterwarnings("ignore")
+# Trọng số đã nằm trong cache máy này. Khóa chế độ ngoại tuyến để lúc bảo vệ
+# không phải gọi ra Hugging Face Hub, đỡ một dòng cảnh báo và đỡ phụ thuộc mạng.
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
 
 import pandas as pd
 import torch
@@ -359,8 +363,11 @@ nhất là từ vựng pháp lý, và nó có sẵn trong kho. Nhược điểm 
 nói thường như "tài xế" không có trong văn bản luật nên dễ bị phục hồi sai. Ô cuối
 của mục này in ra đúng những ca đó.
 
-**Bộ định tuyến.** `diacritics.co_dau` kiểm câu có chữ mang dấu hay không. Câu có
-dấu đi thẳng qua hệ cũ, nên không có rủi ro làm hỏng câu có dấu.
+**Không có cổng chặn.** Mọi câu đều đi qua khâu phục hồi dấu. Bản đầu chỉ chạy
+phục hồi khi `diacritics.co_dau` báo câu không có dấu nào, nhưng hàm đó xét cả
+chuỗi: câu gõ dấu một nửa cũng bị tính là có dấu nên không bao giờ được sửa. Bỏ
+cổng đi thì câu nửa dấu lên hẳn, còn câu vốn đủ dấu không mất gì, cả hai đều có
+số trong bảng dưới.
 
 Mọi bảng dưới đây đọc từ `reports/eval/khong_dau*.csv`, do
 `scripts/07_khong_dau.py` sinh ra.
@@ -437,16 +444,22 @@ in nguyên văn, kèm số hiệu điều để người dùng tự kiểm.
 
 `tra_cuu.TroLyTraCuu` ghép lại toàn bộ đường chạy:
 
-1. Kiểm dấu. Câu không dấu thì phục hồi dấu trước.
+1. Phục hồi dấu. Mọi câu đều đi qua, âm tiết đã có dấu thì giữ nguyên.
 2. BM25 và tầng ngữ nghĩa, hợp nhất bằng tổng có trọng số đã chốt trên val.
 3. Với điều luật đứng đầu, tìm **đoạn** có cosine cao nhất với câu hỏi. Đó chính
    là khoản quyết định điểm `max` khi gộp đoạn về điều, nên nó là phần trả lời.
-4. In kèm những từ đã khớp và hai điều luật tham khảo thêm.
+4. In kèm những từ đã khớp và hai điều luật tham khảo thêm. Nếu không một từ nào
+   của câu hỏi khớp điều luật trả về, trợ lý in thêm dòng cảnh báo, vì lúc đó gần
+   như chắc chắn câu hỏi nằm ngoài kho luật.
 
 Trợ lý dùng lại chỉ mục đã nạp ở mục 5, không nạp mô hình lần hai.
 
 Vì sao không dùng LLM sinh câu trả lời: trả sai điều luật kèm một câu trả lời trôi
 chảy còn nguy hiểm hơn trả sai điều luật, vì người đọc không còn thấy chỗ sai.
+
+Chỗ trợ lý vẫn yếu: nó luôn trả về một điều luật, kể cả với câu hỏi ngoài phạm vi
+kho. Dòng cảnh báo ở trên chỉ giảm bớt chứ chưa giải quyết, vì nhóm chưa đặt ngưỡng
+điểm nào để nói "không tìm thấy".
 """,
     """
 tro_ly = tra_cuu.TroLyTraCuu(bm=idx_bm, de=idx_de)
@@ -482,10 +495,12 @@ them(
 
 | | Recall@10 trên test |
 |---|---|
-| CH1. Câu có dấu, hệ lai | 0,9772, hơn ngữ nghĩa thuần 0,50 điểm (4 câu trên 788) |
+| CH1. Câu có dấu, hệ lai | 0,9772, hơn ngữ nghĩa thuần 0,51 điểm (4 câu trên 788) |
 | CH2. Câu không dấu, giữ nguyên hệ | 0,1447 |
 | Câu không dấu, BM25 chỉ mục bỏ dấu | 0,7430 |
-| Câu không dấu, phục hồi dấu rồi hệ lai | 0,9670, phục hồi đúng 98,41% âm tiết |
+| Câu không dấu, phục hồi dấu rồi hệ lai | 0,9670, phục hồi đúng 98,45% âm tiết |
+| Câu gõ dấu một nửa, giữ nguyên hệ | 0,7481 |
+| Câu gõ dấu một nửa, phục hồi dấu rồi hệ lai | 0,9721 |
 
 Bài học: hệ tìm luật đo trên câu có dấu trông gần hoàn hảo, nhưng gặp câu gõ không
 dấu thì sụp. Và chống rò rỉ dữ liệu không dừng ở việc chia lại tập: mô hình tiền
@@ -496,22 +511,27 @@ huấn luyện đem dùng cũng có thể đã thấy tập test.
 
 | | Recall@10 trên test |
 |---|---|
-| CH1. Câu có dấu, hệ lai | 0,9772, hơn ngữ nghĩa thuần 0,50 điểm (4 câu trên 788) |
+| CH1. Câu có dấu, hệ lai | 0,9772, hơn ngữ nghĩa thuần 0,51 điểm (4 câu trên 788) |
 | CH2. Câu không dấu, giữ nguyên hệ | 0,1447 |
 | Câu không dấu, BM25 chỉ mục bỏ dấu | 0,7430 |
-| Câu không dấu, phục hồi dấu rồi hệ lai | 0,9670, phục hồi đúng 98,41% âm tiết |
+| Câu không dấu, phục hồi dấu rồi hệ lai | 0,9670, phục hồi đúng 98,45% âm tiết |
+| Câu gõ dấu một nửa, giữ nguyên hệ | 0,7481 |
+| Câu gõ dấu một nửa, phục hồi dấu rồi hệ lai | 0,9721 |
 
-**CH1.** Với câu có dấu, hợp nhất có giúp nhưng rất ít. Không gọi 0,50 điểm phần
-trăm là đáng kể, nhất là khi mỗi cấu hình chỉ chạy một seed nên nhóm không có cơ
-sở nói về biên độ nhiễu.
+**CH1.** Với câu có dấu, hợp nhất có giúp nhưng rất ít. Không gọi 0,51 điểm
+Recall@10 là đáng kể, nhất là khi mỗi cấu hình chỉ chạy một seed nên nhóm không có
+cơ sở nói về biên độ nhiễu.
 
 **CH2.** Với câu không dấu, cả hệ sụp. BM25 trên chỉ mục bỏ dấu là cách rẻ nhất, không
 cần mô hình nào, và lúc này BM25 lại là tầng đứng vững nhất. Cách tốt nhất là phục
 hồi dấu bằng bigram học từ kho luật: hệ về lại gần mức câu có dấu, kém 1,02 điểm.
 Chỗ phục hồi sai tập trung ở từ nói thường mà văn bản luật không dùng.
 
-Giới hạn cần nói rõ: câu không dấu ở đây tạo bằng máy từ câu gốc, chưa có câu do
-người thật gõ, và chưa đo trên câu gõ dấu một nửa hay sai chính tả.
+Câu gõ dấu một nửa cũng được đo: bỏ dấu mỗi âm tiết với xác suất một nửa. Hệ giữ
+nguyên chỉ còn 0,7481, phục hồi dấu đưa lên 0,9721.
+
+Giới hạn cần nói rõ: cả câu không dấu lẫn câu nửa dấu đều do máy bỏ dấu từ câu gốc,
+chưa có câu do người thật gõ, và chưa đo trên câu sai chính tả hay viết tắt.
 
 Bài học về dữ liệu: chống rò rỉ không dừng ở việc chia lại tập. Mô hình bi-encoder
 tiếng Việt phổ biến nhất đã được huấn luyện trên chính bộ dữ liệu này.

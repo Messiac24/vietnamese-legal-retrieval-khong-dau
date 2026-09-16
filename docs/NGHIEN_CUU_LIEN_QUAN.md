@@ -76,16 +76,16 @@ thế nào tới truy hồi văn bản luật.
 
 Bốn điều các công trình ở mục 1.1, 1.2 và 1.4 không báo cáo:
 
-1. **Câu hỏi gõ không dấu.** Mọi bài truy hồi luật nhóm đọc đều chấm trên câu hỏi
+1. **Câu gõ không dấu.** Mọi bài truy hồi luật nhóm đọc đều chấm trên câu hỏi
    có dấu đầy đủ. Các bài phục hồi dấu thì không đo truy hồi. Không ai biết hệ tìm
    luật đứng vững thế nào khi người dân gõ không dấu.
-2. **Mô hình ngữ nghĩa đã thấy dữ liệu đánh giá hay chưa.** Mục 2 cho thấy mô hình
+2. **Mô hình đã thấy dữ liệu đánh giá chưa.** Mục 2 cho thấy mô hình
    tiếng Việt phổ biến nhất và mô hình tự nhận tốt nhất trên bộ này đều đã huấn
    luyện trên nó. Chính nhóm duy trì MTEB đã phải thêm điểm zero-shot vì lý do này
    [19].
-3. **Chất lượng của split gốc.** Các bài dùng nguyên split của ban tổ chức. Không
+3. **Split gốc.** Các bài dùng nguyên split của ban tổ chức. Không
    bài nào báo cáo kiểm tra câu hỏi trùng giữa train và test.
-4. **Hàm hợp nhất chọn theo thói quen.** Nhân điểm [20], RRF [11], hay một trọng số
+4. **Hàm hợp nhất.** Chọn theo thói quen: nhân điểm [20], RRF [11], hay một trọng số
    cố định, ít khi so các cách trên một tập val riêng, trong khi [7] cho thấy lựa
    chọn này thay đổi kết quả.
 
@@ -104,8 +104,9 @@ Lý do chọn:
 - **CH1 là điều kiện để trả lời CH2.** Muốn biết không dấu làm hỏng bao nhiêu thì
   phải có một mốc có dấu đo sạch trước. Ba khoảng trống 2, 3, 4 đều có thể làm con
   số mốc lệch theo chiều có lợi.
-- **Vừa sức một đồ án môn học.** Một GPU 16 GB, mã hóa toàn bộ kho mất 3,8 phút.
-  Mô hình phục hồi dấu học trong 11 giây, không cần tải mô hình nào thêm.
+- **Vừa sức một đồ án môn học.** Một GPU 16 GB, mã hóa toàn bộ kho bằng mô hình
+  sạch mất 11,1 phút (`reports/eval/index_cost.csv`). Mô hình phục hồi dấu đếm xong
+  trong 15 giây, không cần tải mô hình nào thêm.
 - **Kinh nghiệm từ đồ án trước.** Ở đồ án nhận diện bệnh lá sầu riêng, bộ dữ liệu
   công bố có ảnh cùng một chiếc lá nằm ở cả train và test. Nhóm muốn biết bộ văn
   bản có mắc cùng lỗi không.
@@ -114,10 +115,10 @@ Lý do chọn:
 
 | Nghiên cứu trước nói | Đồ án đo được | Khớp không |
 |---|---|---|
-| Lai tốt hơn từng tầng [10, 11, 14, 15, 17] | Câu có dấu: tổng trọng số hơn ngữ nghĩa thuần 0,50 điểm phần trăm, 4 câu trên 788 | Cùng chiều, nhưng mức nhỏ tới mức không gọi được là đáng kể |
+| Lai tốt hơn từng tầng [10, 11, 14, 15, 17] | Câu có dấu: tổng trọng số hơn ngữ nghĩa thuần 0,51 điểm Recall@10, 4 câu trên 788 | Cùng chiều, nhưng mức nhỏ tới mức không gọi được là đáng kể |
 | Tổng trọng số hơn RRF, RRF nhạy tham số [7] | Recall@10 0,9772 so với 0,9670; RRF còn kém ngữ nghĩa thuần ở Recall@1 (0,6701 so với 0,7811) | Khớp |
 | BM25 là mốc mạnh trong truy hồi pháp lý [8] | Câu có dấu: BM25 kém ngữ nghĩa 12 điểm Recall@10. Câu không dấu, chỉ mục bỏ dấu: BM25 đạt 0,7430, gấp sáu lần ngữ nghĩa (0,1244) | Đúng ở tình huống không dấu |
-| Phục hồi dấu đạt khoảng 97% [25] | Bigram âm tiết học từ kho luật: 98,41% âm tiết trên câu hỏi test | Cùng mức, dù mô hình đơn giản hơn nhiều; chưa so trên cùng bộ dữ liệu nên không kết luận hơn kém |
+| Phục hồi dấu đạt khoảng 97% [25] | Bigram âm tiết học từ kho luật: 98,45% âm tiết trên câu hỏi test | Cùng mức, dù mô hình đơn giản hơn nhiều; chưa so trên cùng bộ dữ liệu nên không kết luận hơn kém |
 | Phải tách mô hình zero-shot khỏi mô hình đã thấy dữ liệu [18, 19] | bkai nhỏ hơn AITeamVN khoảng bốn lần nhưng Recall@1 cao hơn: 0,8204 so với 0,7811 | Cùng chiều, nhưng chỉ là dấu hiệu: không tách được bao nhiêu điểm là do đã thấy dữ liệu |
 
 Các con số ở bảng này chép từ `reports/eval/model_comparison.csv`,

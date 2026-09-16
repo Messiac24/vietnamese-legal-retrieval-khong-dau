@@ -6,6 +6,7 @@ Chạy:
 Mọi hình đều vẽ từ reports/ hoặc từ dữ liệu thật, không hình nào vẽ bằng số gõ
 tay. Chạy lại pipeline là hình tự đổi theo.
 """
+import json
 import shutil
 import sys
 from pathlib import Path
@@ -48,7 +49,7 @@ def ve_kien_truc() -> None:
     fig, ax = plt.subplots(figsize=(10, 4.3))
     _hop(ax, 0.00, 0.38, 0.12, 0.24, "Câu hỏi", "có dấu hoặc\nkhông dấu", XAM)
     _hop(ax, 0.155, 0.36, 0.17, 0.28, "Phục hồi dấu",
-         "chỉ khi câu thiếu dấu\nbigram + Viterbi", DO)
+         "mọi câu đều đi qua\nbigram + Viterbi", DO)
     _hop(ax, 0.37, 0.66, 0.24, 0.24, "Tầng từ khóa: BM25",
          f"tách từ pyvi, {nghin(len(arts))} điều", XANH)
     _hop(ax, 0.37, 0.10, 0.24, 0.24, "Tầng ngữ nghĩa",
@@ -65,7 +66,7 @@ def ve_kien_truc() -> None:
             ha="center", fontsize=8.5, color=XANH, style="italic")
     ax.text(0.49, 0.03, "bắt được diễn đạt khác, không cần trùng từ",
             ha="center", fontsize=8.5, color="#B9770E", style="italic")
-    ax.text(0.24, 0.27, "câu có dấu đi thẳng qua", ha="center", fontsize=8.5,
+    ax.text(0.24, 0.27, "âm tiết đã có dấu giữ nguyên", ha="center", fontsize=8.5,
             color=DO, style="italic")
     ax.set_xlim(-0.015, 1.015)
     ax.set_ylim(0, 1)
@@ -96,6 +97,11 @@ def ve_do_dai() -> None:
     fig.tight_layout()
     fig.savefig(IMG / "chunk_need.png", dpi=170)
     plt.close(fig)
+    # Ghi ra tệp để slide đọc lại, khỏi gõ tay tỷ lệ này vào build.js
+    (config.AUDIT_DIR / "do_dai_dieu.json").write_text(json.dumps({
+        "tran_token_phobert": 256, "tran_tu_tuong_duong": tran,
+        "so_dieu": int(len(arts)), "ty_le_vuot_tran_pct": round(vuot, 1),
+    }, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"  chunk_need.png  ({vuot:.1f}% vượt trần)")
 
 
@@ -143,10 +149,12 @@ def ve_khong_dau() -> None:
         ("Không dấu, BM25 giữ nguyên", lay("không dấu", "giữ nguyên", "BM25"), DO),
         ("Không dấu, ngữ nghĩa giữ nguyên", lay("không dấu", "giữ nguyên", "Ngữ nghĩa"), DO),
         ("Không dấu, hệ lai giữ nguyên", lay("không dấu", "giữ nguyên", "Hợp nhất"), DO),
+        ("Nửa dấu, hệ lai giữ nguyên", lay("nửa dấu", "giữ nguyên", "Hợp nhất"), CAM),
         ("Không dấu, BM25 chỉ mục bỏ dấu", lay("không dấu", "chỉ mục bỏ dấu", "BM25 bỏ dấu"), CAM),
+        ("Nửa dấu, phục hồi dấu rồi hệ lai", lay("nửa dấu", "phục hồi dấu", "Hợp nhất"), XLA),
         ("Không dấu, phục hồi dấu rồi hệ lai", lay("không dấu", "phục hồi dấu", "Hợp nhất"), XLA),
     ][::-1]
-    fig, ax = plt.subplots(figsize=(8.8, 3.7))
+    fig, ax = plt.subplots(figsize=(8.8, 4.3))
     thanh = ax.barh([d[0] for d in dong], [d[1] for d in dong],
                     color=[d[2] for d in dong], alpha=0.9)
     for t, d in zip(thanh, dong):
@@ -163,7 +171,8 @@ def ve_khong_dau() -> None:
 
 
 def sao_chep_bieu_do() -> None:
-    for ten in ("recall_curve.png", "alpha_curve.png", "venn_bm25_dense.png"):
+    # chỉ chép hình slide thật sự dùng; recall_curve và alpha_curve chỉ có trong báo cáo
+    for ten in ("venn_bm25_dense.png",):
         nguon = config.EVAL_DIR / ten
         if nguon.exists():
             shutil.copy2(nguon, IMG / ten)

@@ -6,9 +6,14 @@
   "nguon_mo_hinh_ngon_ngu": "kho điều luật + câu hỏi train",
   "so_am_tiet": 18646298,
   "so_bigram": 436741,
-  "do_chinh_xac_am_tiet_test": 0.9841,
-  "so_cau_phuc_hoi_dung_hoan_toan_test": 619,
+  "giay_hoc_mo_hinh": 15,
+  "do_chinh_xac_am_tiet_test": 0.9845,
+  "so_cau_phuc_hoi_dung_hoan_toan_test": 622,
+  "do_chinh_xac_am_tiet_nua_dau_truoc": 0.5818,
+  "do_chinh_xac_am_tiet_nua_dau_sau": 0.9916,
+  "do_chinh_xac_am_tiet_cau_du_dau": 0.9987,
+  "so_cau_du_dau_giu_nguyen_hoan_toan": 769,
   "so_cau_test": 788,
-  "do_tre_phuc_hoi_ms": 0.98,
-  "cau_goc_bi_nhan_la_khong_dau": 0
+  "do_tre_phuc_hoi_ms": 0.88,
+  "cau_goc_khong_co_chu_nao_mang_dau": 0
 }
