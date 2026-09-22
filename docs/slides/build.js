@@ -90,6 +90,27 @@ const kd = (dk, cach, ten) => {
 const ERRS = docCsv(path.join(EVAL, "error_summary.csv"));
 const tocDo = Number(DE_SACH["latency_p50_ms"]) / Number(BM["latency_p50_ms"]);
 
+// lời thoại ở loi_thoai.js
+const LOI = require("./loi_thoai")({
+  so, pt, nghin, kd, gop, CS, SPLIT, BM, DE_SACH, HE_SACH, CROSS, TS, KDP, KDL, TACH, DODAI, CHUNKS,
+  ERRS, soSai: ERRS.reduce((a, b) => a + Number(b.so_ca), 0), loiHopR, soCauHop, tocDo, TONG_TEST, bkai: he("Dense bkai"),
+  nhanDoi: DIA.reduce((a, b) => a + Number(b.so_dieu), 0), chongLan: CHONG_LAN.length,
+  trungId: TRUNG_ID, xungDot: CONFLICT.length,
+});
+const AM_TIET_MOI_GIAY = 3.0;   // tốc độ nói thuyết trình, ước lượng
+const NGHI_MOI_SLIDE = 3;       // giây chuyển slide và chỉ vào hình
+// số đọc thành nhiều âm tiết: "85,22" là tám lăm phẩy hai hai
+const amTietCuaTu = (w) => { const cs = (w.match(/\d/g) || []).length;
+  return cs ? Math.round(1.5 * cs) + (w.match(/\d,\d/g) || []).length : 1; };
+const demAmTiet = (l) => l.noi.join(" ").split(/\s+/).filter(Boolean).reduce((a, w) => a + amTietCuaTu(w), 0);
+function ghiChu(so) {
+  const l = LOI[so];
+  if (!l) return "Không trình bày.";
+  const phan = [`${l.nguoi}  ·  khoảng ${l.giay} giây`, ...l.noi];
+  (l.hoi || []).forEach(([h, d]) => phan.push(`Nếu thầy hỏi: ${h}\n${d}`));
+  return phan.join("\n\n");
+}
+
 // khuôn slide
 p.layout = "LAYOUT_WIDE"; // 13,333 x 7,5 inch
 p.author = "Nhom 09";
@@ -111,7 +132,7 @@ function hop(s, x, y, w, h, nen, vien, dut) {
   s.addShape(p.ShapeType.rect, { x, y, w, h, fill: { color: nen },
     line: vien ? { color: vien, width: 1.25, dashType: dut ? "dash" : "solid" } : { type: "none" } });
 }
-function slide(nhan, tieuDe, ghiChu) {
+function slide(nhan, tieuDe) {
   n += 1;
   const s = p.addSlide();
   s.background = { color: "FFFFFF" };
@@ -122,7 +143,7 @@ function slide(nhan, tieuDe, ghiChu) {
   tx(s, DE_TAI, { x: MX, y: H - 0.42, w: 8, h: 0.24, fontSize: 10, color: MUTED });
   tx(s, `${String(n).padStart(2, "0")} / ${TONG}`, { x: W - MX - 1.5, y: H - 0.42, w: 1.5, h: 0.24,
     fontFace: MF, fontSize: 10, color: MUTED, align: "right" });
-  if (ghiChu) s.addNotes(ghiChu);
+  s.addNotes(ghiChu(n));
   return s;
 }
 // số lớn kèm chú thích bên dưới
@@ -181,19 +202,12 @@ function muiTen(s, x1, y1, x2, y2, mau = MUTED) {
     { text: "GVHD: Đặng Văn Thìn", options: { bold: true } },
   ], { x: MX, y: 4.75, w: 6, h: 1.45, fontSize: 13, color: "FFFFFF", lineSpacingMultiple: 1.15, valign: "top" });
   tx(s, "TP. Hồ Chí Minh, tháng 9 năm 2026", { x: MX, y: H - 0.55, w: 6, h: 0.3, fontSize: 11, color: "9AA8B2" });
-  s.addNotes(
-`BÌA. Khoảng 15 giây.
-
-"Em xin chào thầy và các bạn. Nhóm 09 báo cáo đề tài Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu."`);
+  s.addNotes(ghiChu(n));
 }
 
 // slide 2: bài toán
 {
-  const s = slide("BÀI TOÁN", "Người dân hỏi luật bằng lời thường, và thường gõ không dấu",
-`Khoảng 40 giây.
-
-Ý chính: hai khoảng cách giữa câu hỏi và điều luật. Thẻ trái: không trùng từ nào. Thẻ phải: mất dấu thì "phạt" và "phat" là hai chữ khác nhau với máy.
-Chốt: "Đầu vào là một câu hỏi, đầu ra là danh sách điều luật xếp hạng trong ${nghin(CS.so_dieu_luat)} điều."`);
+  const s = slide("BÀI TOÁN", "Người dân hỏi luật bằng lời thường, và thường gõ không dấu");
 
   const y0 = 1.85, hT = 3.85, wT = (CW - 0.4) / 2;
   // thẻ trái: khác từ vựng
@@ -227,12 +241,7 @@ Chốt: "Đầu vào là một câu hỏi, đầu ra là danh sách điều lu�
 
 // slide 3: nghiên cứu trước
 {
-  const s = slide("NGHIÊN CỨU TRƯỚC", "Kết hợp từ khóa và ngữ nghĩa đã là công thức quen thuộc",
-`Khoảng 40 giây. Không đọc hết bảng, chỉ đọc cột phải.
-
-Dòng 1: từ Zalo 2021 tới EACL 2026 đều ghép BM25 với ngữ nghĩa và đều thấy ghép tốt hơn. Lặp lại phép so đó thì không có gì mới.
-Dòng 4, nói chậm: phục hồi dấu tiếng Việt đạt khoảng 97% nhưng được đo như bài toán riêng, chưa ai đo ảnh hưởng lên tìm luật.
-Nếu thầy hỏi "đọc hết chưa": đối chiếu theo phần tóm tắt, mã nguồn và model card, danh sách ở slide 16.`);
+  const s = slide("NGHIÊN CỨU TRƯỚC", "Kết hợp từ khóa và ngữ nghĩa đã là công thức quen thuộc");
 
   const nen = (i) => (i === 3 ? SEAL_S : i % 2 ? "FFFFFF" : PAPER);
   const TH = { bold: true, color: MUTED, fontFace: MF, fontSize: 11, fill: { color: "FFFFFF" } };
@@ -258,12 +267,7 @@ Nếu thầy hỏi "đọc hết chưa": đối chiếu theo phần tóm tắt, 
 
 // slide 4: khoảng trống và câu hỏi nghiên cứu
 {
-  const s = slide("CÂU HỎI NGHIÊN CỨU", "Chưa ai đo hệ tìm luật chịu được câu mất dấu tới đâu",
-`Khoảng 40 giây. Chỉ tay vào ô đỏ.
-
-"Tìm luật thì chỉ chấm trên câu có dấu. Phục hồi dấu thì chỉ đo độ chính xác âm tiết. Ô giao nhau, tìm luật trên câu mất dấu, chưa ai đo. Đó là câu hỏi nghiên cứu 2."
-"Câu hỏi 1 là điều kiện của câu hỏi 2: muốn biết mất dấu làm hỏng bao nhiêu thì cần một mốc có dấu đo sạch trước."
-Nếu thầy hỏi "chắc chưa ai làm": chỉ khẳng định trong các nguồn nhóm đã đối chiếu.`);
+  const s = slide("CÂU HỎI NGHIÊN CỨU", "Chưa ai đo hệ tìm luật chịu được câu mất dấu tới đâu");
 
   const gx = MX + 1.85, gy = 2.35, cw = 2.85, ch = 1.6, g = 0.12;
   ["Câu hỏi có dấu", "Câu hỏi không dấu"].forEach((t, j) =>
@@ -307,13 +311,7 @@ Nếu thầy hỏi "chắc chưa ai làm": chỉ khẳng định trong các ngu�
     ["Câu hỏi bị lặp dòng", sn("duplicate_queries.csv")],
     ["Câu hỏi nằm ở cả train và test", CHONG_LAN.length],
   ];
-  const s = slide("DỮ LIỆU", `Bộ Zalo 2021 đã công bố vẫn còn ${muc.length} vấn đề khi kiểm toán lại`,
-`Khoảng 40 giây.
-
-"Bộ Zalo AI 2021, bản BEIR trên HuggingFace, đã vào MTEB. Nhóm vẫn kiểm toán lại từ đầu, mỗi phát hiện có một tệp bằng chứng trong reports/audit."
-Chỉ thanh cuối: "${CHONG_LAN.length} câu hỏi nằm ở cả train lẫn test. Slide sau."
-Chỉ thanh thứ ba: "${DIA.length / 2} văn bản bị tách đôi chỉ vì nd và nđ. Chuyện dấu đã gây lỗi ngay trong dữ liệu gốc."
-Nếu thầy hỏi sao không xóa điều trùng: kho luật thật có điều trùng thật, xóa đi làm bài dễ đi giả tạo.`);
+  const s = slide("DỮ LIỆU", `Bộ Zalo 2021 đã công bố vẫn còn ${muc.length} vấn đề khi kiểm toán lại`);
 
   const lx = MX, ly = 1.95;
   [[nghin(CS.so_dieu_luat), "điều luật"], [nghin(CS.so_van_ban), "văn bản"],
@@ -335,12 +333,7 @@ Nếu thầy hỏi sao không xóa điều trùng: kho luật thật có điều
 
 // slide 6: nhãn mâu thuẫn
 {
-  const s = slide("RÒ RỈ DỮ LIỆU", `${CONFLICT.length} trên ${TRUNG_ID} câu hỏi trùng giữa train và test mang nhãn khác nhau`,
-`Khoảng 45 giây. Điểm nhấn của phần kiểm toán.
-
-"Trong ${CHONG_LAN.length} câu chồng lấn, ${TRUNG_ID} câu trùng đúng mã. Chúng không phải dòng lặp: cả ${CONFLICT.length} câu, tệp train chỉ sang một điều luật, tệp test chỉ sang điều khác."
-Đọc dòng đầu bảng.
-Chốt: "Bộ nhãn không đầy đủ, nên mọi Recall trong báo cáo là cận dưới. Nhóm bỏ dòng train của các câu này, giữ nguyên test của ban tổ chức."`);
+  const s = slide("RÒ RỈ DỮ LIỆU", `${CONFLICT.length} trên ${TRUNG_ID} câu hỏi trùng giữa train và test mang nhãn khác nhau`);
 
   tx(s, `${CONFLICT.length}/${TRUNG_ID}`, { x: MX, y: 1.95, w: 3.6, h: 1.5, fontFace: HF, fontSize: 88, bold: true, color: SEAL });
   tx(s, "câu hỏi trùng mã giữa train và test mang hai điều luật gold khác nhau",
@@ -367,12 +360,7 @@ Chốt: "Bộ nhãn không đầy đủ, nên mọi Recall trong báo cáo là c
 
 // slide 7: mô hình đã thấy tập test
 {
-  const s = slide("RÒ RỈ DỮ LIỆU", "Mô hình phổ biến nhất đã học chính tập test",
-`Khoảng 45 giây. Phát hiện đáng giá nhất, nói chậm.
-
-"Chống rò rỉ thường dừng ở chia lại tập. Nhưng mô hình tiền huấn luyện mình tải về cũng có thể đã thấy tập test. Nhóm đọc model card của bkai, mô hình bi-encoder tiếng Việt phổ biến nhất: nó học 80% tập train Zalo 2021, mà tập test của nhóm cắt ra từ đúng tập đó."
-"Giống xem đề và đáp án trước khi thi. Nhóm chuyển sang AITeamVN, model card ghi không học bộ này, làm mô hình sạch cho mọi con số chính thức. bkai vẫn báo cáo nhưng gắn nhãn nhiễm bẩn."
-Nếu thầy hỏi sao tin model card: không kiểm chứng trực tiếp được, nhóm ghi rõ đó là tuyên bố của tác giả mô hình.`);
+  const s = slide("RÒ RỈ DỮ LIỆU", "Mô hình phổ biến nhất đã học chính tập test");
 
   const y0 = 1.95, wT = (CW - 0.4) / 2, hT = 2.75;
   const the = (x, ten, nhan, mau, nen, trich, ket) => {
@@ -405,13 +393,7 @@ Nếu thầy hỏi sao tin model card: không kiểm chứng trực tiếp đư�
 
 // slide 8: kiến trúc
 {
-  const s = slide("PHƯƠNG PHÁP", "Một khâu phục hồi dấu đứng trước ba tầng tìm kiếm",
-`Khoảng 45 giây. Đi theo mũi tên từ trái sang phải.
-
-"Mọi câu hỏi đều qua khâu phục hồi dấu trước, không cần hỏi câu có dấu hay chưa: âm tiết đã có dấu giữ nguyên, chỉ phần thiếu được sửa."
-"Rồi câu hỏi vào hai nhánh song song: BM25 trên ${nghin(CS.so_dieu_luat)} điều đã tách từ bằng pyvi, và bi-encoder trên ${nghin(CHUNKS)} đoạn, gộp về điều bằng điểm cao nhất. Mỗi nhánh trả top-${TS.top_k_hop_nhat}, tầng hợp nhất cộng điểm theo trọng số."
-"Đầu ra trích nguyên văn khoản luật, không sinh chữ, nên không bịa được."
-Nếu thầy hỏi vì sao gộp max: đo trên val, max ${so(gop("max"))}, mean ${so(gop("mean"))}.`);
+  const s = slide("PHƯƠNG PHÁP", "Một khâu phục hồi dấu đứng trước ba tầng tìm kiếm");
 
   const cy = 3.55, bh = 1.25;
   const khoi = (x, y, w, ten, phu, mau, nen) => {
@@ -440,12 +422,7 @@ Nếu thầy hỏi vì sao gộp max: đo trên val, max ${so(gop("max"))}, mean
 
 // slide 9: chia đoạn
 {
-  const s = slide("PHƯƠNG PHÁP", `${so(DODAI.ty_le_vuot_tran_pct, 0)}% điều luật dài hơn giới hạn của mô hình, nên phải chia đoạn`,
-`Khoảng 35 giây.
-
-"Mô hình nhận tối đa 256 token, khoảng ${DODAI.tran_tu_tuong_duong} từ. Phần đỏ là các điều dài hơn thế: ${so(DODAI.ty_le_vuot_tran_pct, 1)} phần trăm. Cắt cụt là vứt phần đuôi, mà đuôi điều luật hay là mức phạt và ngoại lệ."
-"Nhóm cắt theo ranh giới khoản, khoản nào quá dài mới trượt cửa sổ, mỗi đoạn mang tiêu đề điều. Kết quả ${nghin(CS.so_dieu_luat)} điều thành ${nghin(CHUNKS)} đoạn."
-Nếu thầy hỏi sao không dùng mô hình ngữ cảnh dài: để hai bộ mã hóa ăn cùng một bộ đoạn, biến duy nhất là bộ mã hóa.`);
+  const s = slide("PHƯƠNG PHÁP", `${so(DODAI.ty_le_vuot_tran_pct, 0)}% điều luật dài hơn giới hạn của mô hình, nên phải chia đoạn`);
 
   const pb = DODAI.phan_bo;
   const nhan = pb.map((c) => (c.den === null ? `≥${nghin(c.tu)}` : String(c.tu)));
@@ -474,14 +451,7 @@ Nếu thầy hỏi sao không dùng mô hình ngữ cảnh dài: để hai bộ 
 
 // slide 10: CH1, kết quả câu có dấu
 {
-  const s = slide("CH1  ·  CÂU CÓ DẤU", `Trên câu có dấu, hợp nhất chỉ hơn ngữ nghĩa ${so(loiHopR, 2)} điểm Recall@10`,
-`Khoảng 45 giây. Trả lời câu hỏi nghiên cứu 1.
-
-"${TONG_TEST} câu test, chấm một lần. BM25 được ${pt(BM["recall@10"])}, ngữ nghĩa ${pt(DE_SACH["recall@10"])}, hợp nhất có trọng số ${pt(HE_SACH["recall@10"])} phần trăm."
-"Hợp nhất hơn ngữ nghĩa ${so(loiHopR, 2)} điểm, tính theo số câu là ${soCauHop} câu trên ${TONG_TEST}. Có cải thiện nhưng rất nhỏ, mỗi cấu hình một seed nên nhóm không gọi đó là đáng kể."
-"RRF chỉ nhìn thứ hạng nên còn kém ngữ nghĩa ở Recall@1, khớp với Bruch và cộng sự 2023."
-Nếu thầy hỏi về bkai: Recall@10 ${pt(he("Dense bkai")["recall@10"])} nhưng đã học tập test, nên không đưa vào so sánh.
-Nếu thầy hỏi F2 sao thấp: cố định k bằng 10 nên precision tối đa 0,1, không so với bảng xếp hạng Zalo được.`);
+  const s = slide("CH1  ·  CÂU CÓ DẤU", `Trên câu có dấu, hợp nhất chỉ hơn ngữ nghĩa ${so(loiHopR, 2)} điểm Recall@10`);
 
   const heS = [["BM25", BM], [`Ngữ nghĩa`, DE_SACH], ["RRF", RRF_SACH], ["Hợp nhất trọng số", HE_SACH]];
   bieuDo(s, [
@@ -505,13 +475,7 @@ Nếu thầy hỏi F2 sao thấp: cố định k bằng 10 nên precision tối 
   const caHai = CROSS["cả hai đúng"], khongAi = CROSS["cả hai sai"];
   const tong = chiBm + chiDe + caHai + khongAi;
   const lan = Math.round(tocDo / 100) * 100;
-  const s = slide("CH1  ·  CÂU CÓ DẤU", `BM25 chỉ cứu thêm ${chiBm} câu, nhưng nhanh hơn khoảng ${lan} lần`,
-`Khoảng 40 giây.
-
-"Đối chiếu chéo ở top-10: ${caHai} câu cả hai tầng đều đúng, ${chiDe} câu chỉ ngữ nghĩa đúng, và chỉ ${chiBm} câu mà BM25 đúng còn ngữ nghĩa sai. Đó là toàn bộ khoảng trống hợp nhất có thể lấp."
-"Vậy có bỏ BM25 không? Không, vì hai lý do khác điểm số: nhanh hơn khoảng ${lan} lần, và chỉ ra được đúng những từ đã khớp. Với tra cứu luật, người dùng sắp viện dẫn điều đó nên cần biết vì sao nó được chọn."
-"Và ở phần sau, khi mất dấu, BM25 là tầng đứng vững nhất."
-Nếu thầy hỏi ${khongAi} câu cả hai sai: nhóm đọc tay 17 ca hệ lai sai, ${ERRS[0].so_ca} ca thiếu ngữ cảnh pháp lý như câu nướng bắp, ${ERRS[ERRS.length - 1].so_ca} ca nhãn gold đáng ngờ.`);
+  const s = slide("CH1  ·  CÂU CÓ DẤU", `BM25 chỉ cứu thêm ${chiBm} câu, nhưng nhanh hơn khoảng ${lan} lần`);
 
   // hai vòng tròn chồng nhau
   const cy = 4.05, r = 1.85, xa = 1.55, xb = 3.95;
@@ -539,14 +503,7 @@ Nếu thầy hỏi ${khongAi} câu cả hai sai: nhóm đọc tay 17 ca hệ lai
   const heK = [["BM25", "BM25"], ["Ngữ nghĩa", "Ngữ nghĩa"], ["Hợp nhất", "Hợp nhất"]];
   const coDe = kd("có dấu", "giữ nguyên", "Ngữ nghĩa"), khDe = kd("không dấu", "giữ nguyên", "Ngữ nghĩa");
   const bmBo = kd("không dấu", "chỉ mục bỏ dấu", "BM25 bỏ dấu");
-  const s = slide("CH2  ·  CÂU MẤT DẤU", `Mất dấu, mô hình ngữ nghĩa tốt nhất tụt từ ${pt(coDe["recall@10"], 0)}% còn ${pt(khDe["recall@10"], 0)}%`,
-`Khoảng 45 giây. Kết quả chính của đồ án, nói chậm.
-
-"Nhóm lấy đúng ${TONG_TEST} câu test, bỏ hết dấu bằng máy, giữ nguyên nhãn, rồi chạy lại đúng hệ vừa rồi."
-Chỉ cột đỏ: "Ngữ nghĩa tụt từ ${pt(coDe["recall@10"])} xuống ${pt(khDe["recall@10"])}. BM25 và hợp nhất cũng vậy. Cả hệ gần như không dùng được."
-"Riêng BM25, nếu lập chỉ mục trên văn bản đã bỏ dấu thì lên lại ${pt(bmBo["recall@10"])}, không cần mô hình nào. Nhưng cách tốt nhất là phục hồi dấu, slide sau."
-Nếu thầy hỏi vì sao ngữ nghĩa sụp: giả thuyết là mô hình học chủ yếu văn bản có dấu, chưa kiểm chứng trực tiếp.
-Nếu thầy hỏi BM25 bỏ dấu giảm do bỏ dấu hay do đổi cách tách từ: đo trên val, đổi cách tách từ mất ${so(TACH["pyvi tách từ, còn dấu"] - TACH["âm tiết, còn dấu"], 3)}, bỏ dấu mất thêm ${so(TACH["âm tiết, còn dấu"] - TACH["âm tiết, bỏ dấu"], 3)}.`);
+  const s = slide("CH2  ·  CÂU MẤT DẤU", `Mất dấu, mô hình ngữ nghĩa tốt nhất tụt từ ${pt(coDe["recall@10"], 0)}% còn ${pt(khDe["recall@10"], 0)}%`);
 
   bieuDo(s, [
     { name: "Câu có dấu", labels: heK.map((h) => h[0]), values: heK.map((h) => VAN(kd("có dấu", "giữ nguyên", h[1])["recall@10"])) },
@@ -568,12 +525,7 @@ Nếu thầy hỏi BM25 bỏ dấu giảm do bỏ dấu hay do đổi cách tác
 {
   const coHop = kd("có dấu", "giữ nguyên", "Hợp nhất"), khHop = kd("không dấu", "giữ nguyên", "Hợp nhất");
   const phHop = kd("không dấu", "phục hồi dấu", "Hợp nhất");
-  const s = slide("CH2  ·  CÂU MẤT DẤU", `Phục hồi dấu bằng bigram kéo hệ về ${pt(phHop["recall@10"], 1)}%, không cần GPU`,
-`Khoảng 45 giây. Trả lời câu hỏi nghiên cứu 2.
-
-"Cách làm đơn giản: đếm các cặp âm tiết liền nhau trên ${so(KDP.so_am_tiet / 1e6, 1)} triệu âm tiết của chính kho luật và câu hỏi train. Mỗi âm tiết không dấu có nhiều dạng có dấu, ví dụ nghi có thể là nghỉ, nghị, nghĩ. Viterbi chọn chuỗi có xác suất cao nhất."
-"${pt(KDP.do_chinh_xac_am_tiet_test)} phần trăm âm tiết đúng, ${so(KDP.do_tre_phuc_hoi_ms, 2)} mili giây mỗi câu, học xong trong ${KDP.giay_hoc_mo_hinh} giây, không cần GPU. Hệ từ ${pt(khHop["recall@10"])} lên ${pt(phHop["recall@10"])}, chỉ kém câu có dấu ${so(100 * (coHop["recall@10"] - phHop["recall@10"]), 2)} điểm."
-Nếu thầy hỏi sao không dùng mô hình phục hồi dấu có sẵn: chưa so trên cùng bộ dữ liệu nên không nói hơn kém; bigram có lợi là không phải tải thêm mô hình.`);
+  const s = slide("CH2  ·  CÂU MẤT DẤU", `Phục hồi dấu bằng bigram kéo hệ về ${pt(phHop["recall@10"], 1)}%, không cần GPU`);
 
   const lx = MX, lw = 5.6;
   tx(s, "VÍ DỤ", { x: lx, y: 1.95, w: lw, h: 0.3, fontFace: MF, fontSize: 12, bold: true, color: ACC });
@@ -608,12 +560,7 @@ Nếu thầy hỏi sao không dùng mô hình phục hồi dấu có sẵn: chư
   const saiNhom = KDL["sai ít nhất một âm tiết"], mat = KDL["mất do phục hồi sai"], duoc = KDL["được nhờ phục hồi"];
   const nuaGiu = kd("nửa dấu", "giữ nguyên", "Hợp nhất"), nuaPh = kd("nửa dấu", "phục hồi dấu", "Hợp nhất");
   const coPh = kd("có dấu", "phục hồi dấu", "Hợp nhất");
-  const s = slide("CH2  ·  CÂU MẤT DẤU", "Phục hồi sai ở từ nói thường, nhưng sửa được cả câu gõ nửa dấu",
-`Khoảng 35 giây.
-
-Trái: "Chỗ sai rơi vào từ nói thường mà văn bản luật không dùng: tài xế thành tải xe, máu thành mẫu. Chính là khoảng cách từ vựng ở slide 2. ${saiNhom.so_cau} câu sai ít nhất một âm tiết; ở nhóm này mất ${mat.so_cau} câu đúng, được ${duoc.so_cau}."
-Phải: "Vì âm tiết đã có dấu được giữ nguyên, câu gõ dấu một nửa cũng được sửa: từ ${pt(nuaGiu["recall@10"])} lên ${pt(nuaPh["recall@10"])}. Câu vốn đủ dấu vẫn giữ ${pt(coPh["recall@10"])}, vì ${KDP.so_cau_du_dau_giu_nguyen_hoan_toan} trên ${KDP.so_cau_test} câu không bị đổi chữ nào. Nên không cần hỏi câu có dấu hay chưa."
-Câu nửa dấu cũng do máy tạo: mỗi âm tiết bị bỏ dấu với xác suất một nửa.`);
+  const s = slide("CH2  ·  CÂU MẤT DẤU", "Phục hồi sai ở từ nói thường, nhưng sửa được cả câu gõ nửa dấu");
 
   const lx = MX, lw = 5.5;
   tx(s, "PHỤC HỒI SAI", { x: lx, y: 1.95, w: lw, h: 0.3, fontFace: MF, fontSize: 12, bold: true, color: SEAL });
@@ -658,13 +605,7 @@ Câu nửa dấu cũng do máy tạo: mỗi âm tiết bị bỏ dấu với xá
   tx(s, "Tiếp theo: demo trên Kaggle  →", { x: MX, y: 6.25, w: CW, h: 0.45, fontSize: 18, bold: true, color: "FFFFFF", align: "right" });
   tx(s, `${String(n).padStart(2, "0")} / ${TONG}`, { x: W - MX - 1.5, y: H - 0.42, w: 1.5, h: 0.24,
     fontFace: MF, fontSize: 10, color: "9AA8B2", align: "right" });
-  s.addNotes(
-`Khoảng 35 giây. Nói chậm, đây là ấn tượng cuối.
-
-"Một: câu có dấu, hợp nhất chỉ hơn ngữ nghĩa ${so(loiHopR, 2)} điểm, tức ${soCauHop} câu. BM25 đáng giữ vì nhanh và giải thích được."
-"Hai, điều nhóm muốn thầy nhớ: mất dấu thì hệ chỉ còn ${pt(khHop["recall@10"])} phần trăm, và một mô hình bigram nhỏ học từ chính kho luật kéo về ${pt(phHop["recall@10"])}."
-"Ba: chống rò rỉ không dừng ở chia lại tập, mô hình tải về cũng có thể đã thấy tập test."
-"Em xin hết phần trình bày, nhóm xin demo code."`);
+  s.addNotes(ghiChu(n));
 }
 
 // slide 16: tài liệu tham khảo
@@ -674,8 +615,7 @@ Câu nửa dấu cũng do máy tạo: mỗi âm tiết bị bỏ dấu với xá
   const tl = phan.split(/\r?\n/).map((l) => l.match(/^(\d+)\.\s+(.*)$/)).filter(Boolean)
     .map((m) => `[${m[1]}] ${m[2].replace(/\*/g, "")}`);
   if (tl.length === 0) throw new Error("Không đọc được tài liệu tham khảo từ NGHIEN_CUU_LIEN_QUAN.md");
-  const s = slide("PHỤ LỤC", "Tài liệu tham khảo",
-`Không trình bày. Danh sách đọc thẳng từ docs/NGHIEN_CUU_LIEN_QUAN.md.`);
+  const s = slide("PHỤ LỤC", "Tài liệu tham khảo");
   const nua = Math.ceil(tl.length / 2);
   [tl.slice(0, nua), tl.slice(nua)].forEach((cot, i) => {
     tx(s, cot.map((t, j) => ({ text: t, options: { breakLine: j < cot.length - 1 } })),
@@ -685,6 +625,24 @@ Câu nửa dấu cũng do máy tạo: mỗi âm tiết bị bỏ dấu với xá
 }
 
 if (n !== TONG) throw new Error(`Dựng ${n} slide nhưng TONG = ${TONG}: sửa TONG cho khớp.`);
+// bấm giờ theo số âm tiết, và xuất lời thoại cho file Word kịch bản
+let tongGiay = 0, tongDuKien = 0;
+const bang = ["| Slide | Người nói | Dự kiến | Ước theo số chữ |", "|---|---|---|---|"];
+const md = ["## Lời thoại", ""];
+Object.keys(LOI).map(Number).forEach((so) => {
+  const l = LOI[so], uoc = Math.round(demAmTiet(l) / AM_TIET_MOI_GIAY) + NGHI_MOI_SLIDE;
+  tongGiay += uoc; tongDuKien += l.giay;
+  bang.push(`| ${so} | ${l.nguoi} | ${l.giay} giây | ${uoc} giây |`);
+  if (Math.abs(uoc - l.giay) > 8) console.log(`  slide ${so}: dự kiến ${l.giay} giây, lời thoại đọc mất khoảng ${uoc} giây`);
+  md.push(`### Slide ${so}. ${l.nguoi}, khoảng ${l.giay} giây`, "", ...l.noi.flatMap((d) => [d, ""]));
+  (l.hoi || []).forEach(([h, d]) => md.push(`Nếu thầy hỏi: ${h}`, "", d, ""));
+});
+const phut = (g) => `${Math.floor(g / 60)} phút ${g % 60} giây`;
+bang.push(`| Tổng | | ${phut(tongDuKien)} | ${phut(tongGiay)} |`);
+console.log(`  lời thoại: dự kiến ${phut(tongDuKien)}, ước theo số chữ ${phut(tongGiay)}`);
+fs.writeFileSync(path.join(ROOT, "docs", "LOI_THOAI.md"),
+  ["# Lời thoại từng slide", "", "## Thời lượng", "", `Ước theo ${String(AM_TIET_MOI_GIAY).replace(".", ",")} âm tiết mỗi giây, cộng ${NGHI_MOI_SLIDE} giây mỗi slide để chuyển và chỉ hình. Phải bấm giờ khi tập để chỉnh.`, "", ...bang, "", ...md].join("\n"));
+
 const OUT = "Nhom09_XLNNTN_BaoCao.pptx";
 p.writeFile({ fileName: OUT }).then(() => {
   console.log(`Đã dựng ${n} slide -> ${OUT}`);
