@@ -20,7 +20,7 @@ def ma(s):
 md("""
 # Demo: tìm kiếm điều luật cho câu hỏi gõ thiếu dấu
 
-Nhóm 09, môn Xử lý ngôn ngữ tự nhiên.
+Nhóm 08, môn Xử lý ngôn ngữ tự nhiên.
 
 Trên Kaggle: thêm dataset `vlr-demo`, bật Internet, chọn GPU T4. Chạy ô 1 và ô 2 trước
 giờ trình bày (khoảng 2 phút, lần đầu phải tải mô hình AITeamVN), các ô sau chạy trực tiếp.

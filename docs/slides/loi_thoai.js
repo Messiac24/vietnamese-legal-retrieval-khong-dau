@@ -10,7 +10,7 @@ module.exports = (D) => {
 
   return {
     1: { giay: 15, nguoi: LOC, noi: [
-      "Em chào thầy và các bạn. Nhóm 09 gồm Lộc, Tuấn Anh và Thư. Đề tài của nhóm là tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu.",
+      "Em chào thầy và các bạn. Nhóm 08 gồm Lộc, Tuấn Anh và Thư. Đề tài của nhóm là tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu.",
     ] },
 
     2: { giay: 40, nguoi: LOC, noi: [

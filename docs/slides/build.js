@@ -1,7 +1,7 @@
-// Dựng bộ slide báo cáo, nhóm 09 môn Xử lý ngôn ngữ tự nhiên.
+// Dựng bộ slide báo cáo, nhóm 08 môn Xử lý ngôn ngữ tự nhiên.
 //
 //     C:/Python314/python.exe make_assets.py
-//     node build.js          -> Nhom09_XLNNTN_BaoCao.pptx
+//     node build.js          -> Nhom08_XLNNTN_BaoCao.pptx
 //
 // Số liệu đọc từ reports/, tài liệu tham khảo đọc từ docs/NGHIEN_CUU_LIEN_QUAN.md.
 const fs = require("fs");
@@ -113,7 +113,7 @@ function ghiChu(so) {
 
 // khuôn slide
 p.layout = "LAYOUT_WIDE"; // 13,333 x 7,5 inch
-p.author = "Nhom 09";
+p.author = "Nhom 08";
 p.title = "Tim kiem dieu luat tieng Viet cho cau hoi go thieu dau";
 
 const W = 13.333, H = 7.5, MX = 0.65, CW = W - 2 * MX;
@@ -122,7 +122,7 @@ const SEAL = "A8202B", SEAL_S = "F8E9E9", OK = "1B6E5A", OK_S = "E4F0EB";
 const ACC = "2C5F8A", ACC_S = "E5EEF5", ACC_L = "9FC2DB", WARN = "B7791F";
 const HF = "Cambria", BF = "Calibri", MF = "Consolas";
 const TONG = 16;   // kiểm lại ở cuối tệp, lệch là dừng
-const DE_TAI = "Nhóm 09  ·  Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu";
+const DE_TAI = "Nhóm 08  ·  Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu";
 
 let n = 0;
 function tx(s, text, o) {
@@ -195,7 +195,7 @@ function muiTen(s, x1, y1, x2, y2, mau = MUTED) {
   tx(s, "Kết hợp từ khóa và ngữ nghĩa, phục hồi dấu, kiểm toán rò rỉ dữ liệu",
     { x: MX, y: 3.9, w: 7.4, h: 0.4, fontSize: 18, italic: true, color: "C9D6DF" });
   tx(s, [
-    { text: "Nhóm 09", options: { bold: true, breakLine: true } },
+    { text: "Nhóm 08", options: { bold: true, breakLine: true } },
     { text: "Lê Hoàng Lộc  25210293", options: { breakLine: true } },
     { text: "Lê Thị Tuấn Anh  25210250", options: { breakLine: true } },
     { text: "Đoàn Mậu Thiên Thư  25210341", options: { breakLine: true } },
@@ -643,7 +643,7 @@ console.log(`  lời thoại: dự kiến ${phut(tongDuKien)}, ước theo số 
 fs.writeFileSync(path.join(ROOT, "docs", "LOI_THOAI.md"),
   ["# Lời thoại từng slide", "", "## Thời lượng", "", `Ước theo ${String(AM_TIET_MOI_GIAY).replace(".", ",")} âm tiết mỗi giây, cộng ${NGHI_MOI_SLIDE} giây mỗi slide để chuyển và chỉ hình. Phải bấm giờ khi tập để chỉnh.`, "", ...bang, "", ...md].join("\n"));
 
-const OUT = "Nhom09_XLNNTN_BaoCao.pptx";
+const OUT = "Nhom08_XLNNTN_BaoCao.pptx";
 p.writeFile({ fileName: OUT }).then(() => {
   console.log(`Đã dựng ${n} slide -> ${OUT}`);
 });

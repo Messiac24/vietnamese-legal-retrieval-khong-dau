@@ -1,6 +1,6 @@
 # Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu
 
-Đồ án môn Xử lý ngôn ngữ tự nhiên, nhóm 09. GVHD: Đặng Văn Thìn.
+Đồ án môn Xử lý ngôn ngữ tự nhiên, nhóm 08. GVHD: Đặng Văn Thìn.
 Thành viên: Lê Hoàng Lộc (25210293), Lê Thị Tuấn Anh (25210250), Đoàn Mậu Thiên Thư (25210341).
 
 Hệ tìm điều luật ghép BM25 với bi-encoder, chạy trên 61.425 điều luật của bộ Zalo AI
