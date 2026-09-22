@@ -25,9 +25,9 @@ def them(ngan: str, dai: str, ma: str = "") -> None:
 
 them(
     """
-# Demo: Truy hồi điều luật tiếng Việt cho câu hỏi gõ thiếu dấu
+# Demo: Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu
 
-Phục hồi dấu, truy hồi lai và kiểm toán rò rỉ dữ liệu.
+Kết hợp từ khóa và ngữ nghĩa, phục hồi dấu, kiểm toán rò rỉ dữ liệu.
 Nhóm 09, môn Xử lý ngôn ngữ tự nhiên. GVHD: Đặng Văn Thìn.
 
 ### Nội dung
@@ -44,9 +44,9 @@ Nhóm 09, môn Xử lý ngôn ngữ tự nhiên. GVHD: Đặng Văn Thìn.
 10. Trợ lý tra cứu
 """,
     """
-# Bản chú giải: Truy hồi điều luật tiếng Việt cho câu hỏi gõ thiếu dấu
+# Bản chú giải: Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu
 
-Phục hồi dấu, truy hồi lai và kiểm toán rò rỉ dữ liệu.
+Kết hợp từ khóa và ngữ nghĩa, phục hồi dấu, kiểm toán rò rỉ dữ liệu.
 Nhóm 09, môn Xử lý ngôn ngữ tự nhiên. GVHD: Đặng Văn Thìn.
 
 Notebook này chạy **cùng một mã** với `demo.ipynb`, chỉ dày thêm phần giải thích.

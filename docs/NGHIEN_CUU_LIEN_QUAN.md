@@ -1,7 +1,6 @@
 # Nghiên cứu liên quan và lý do chọn hướng
 
-Đề tài: **Truy hồi điều luật tiếng Việt cho câu hỏi gõ thiếu dấu: phục hồi dấu,
-truy hồi lai và kiểm toán rò rỉ dữ liệu.**
+Đề tài: **Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu (kết hợp từ khóa và ngữ nghĩa, phục hồi dấu bằng mô hình ngôn ngữ, kiểm toán rò rỉ dữ liệu ở cả bộ dữ liệu lẫn mô hình tiền huấn luyện).**
 
 Tên tiếng Anh: *Vietnamese Statutory Article Retrieval for Diacritic-free Queries:
 Diacritic Restoration, Hybrid Retrieval and Leakage Audit.*

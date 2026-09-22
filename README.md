@@ -1,6 +1,6 @@
-# Truy hồi điều luật tiếng Việt cho câu hỏi gõ thiếu dấu
+# Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu
 
-Phục hồi dấu, truy hồi lai và kiểm toán rò rỉ dữ liệu, trên 61.425 điều luật Việt Nam.
+Kết hợp từ khóa và ngữ nghĩa, phục hồi dấu, kiểm toán rò rỉ dữ liệu, trên 61.425 điều luật Việt Nam.
 
 Môn: Xử lý ngôn ngữ tự nhiên. GVHD: Đặng Văn Thìn.
 Nhóm 09: Lê Hoàng Lộc (25210293), Lê Thị Tuấn Anh (25210250), Đoàn Mậu Thiên Thư (25210341).

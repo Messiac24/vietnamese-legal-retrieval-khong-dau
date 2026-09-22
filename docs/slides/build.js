@@ -1,6 +1,5 @@
 // Bộ slide báo cáo môn Xử lý ngôn ngữ tự nhiên - Nhóm 09
-// Đề tài: Truy hồi điều luật tiếng Việt cho câu hỏi gõ thiếu dấu:
-//         phục hồi dấu, truy hồi lai và kiểm toán rò rỉ dữ liệu
+// Đề tài: Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu (kết hợp từ khóa và ngữ nghĩa, phục hồi dấu bằng mô hình ngôn ngữ, kiểm toán rò rỉ dữ liệu ở cả bộ dữ liệu lẫn mô hình tiền huấn luyện)
 //
 // Dựng lại bộ slide (chạy từ chính thư mục này):
 //
@@ -155,11 +154,11 @@ const THEAD = { fill: { color: TBLHEAD }, color: "FFFFFF", bold: true, align: "c
     fill: { color: "0E1B2C", transparency: 15 } });
   s.addText("BÁO CÁO ĐỒ ÁN MÔN HỌC", { isTextBox: true, x: 1.25, y: 3.22, w: 8.5, h: 0.42,
     fontFace: F, fontSize: 16, bold: true, color: "FFFFFF", align: "right", margin: 0 });
-  s.addText("Truy hồi điều luật tiếng Việt\ncho câu hỏi gõ thiếu dấu",
+  s.addText("Tìm kiếm điều luật tiếng Việt\ncho câu hỏi gõ thiếu dấu",
     { isTextBox: true, x: 1.25, y: 3.66, w: 8.5, h: 1.25,
       fontFace: F, fontSize: 26, bold: true, color: "FFFFFF", align: "right",
       lineSpacingMultiple: 1.1, margin: 0 });
-  s.addText("Phục hồi dấu, truy hồi lai và kiểm toán rò rỉ dữ liệu",
+  s.addText("Kết hợp từ khóa và ngữ nghĩa, phục hồi dấu, kiểm toán rò rỉ dữ liệu",
     { isTextBox: true, x: 1.25, y: 4.92, w: 8.5, h: 0.34,
       fontFace: F, fontSize: 15, italic: true, color: "CFE2F5", align: "right", margin: 0 });
   s.addShape(p.ShapeType.line, { x: 3.1, y: 5.34, w: 6.65, h: 0, line: { color: "C9C9C9", width: 1 } });
@@ -175,7 +174,7 @@ const THEAD = { fill: { color: TBLHEAD }, color: "FFFFFF", bold: true, align: "c
   s.addNotes(
 `MỞ ĐẦU. Nói chậm, nhìn thầy. Khoảng 20 giây.
 
-"Em xin chào thầy và các bạn. Nhóm 09 báo cáo đề tài Truy hồi điều luật tiếng Việt cho câu hỏi gõ thiếu dấu."
+"Em xin chào thầy và các bạn. Nhóm 09 báo cáo đề tài Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu."
 
 Nếu cần nói đề tài bằng một câu: "Mô hình ngữ nghĩa sạch tốt nhất tụt từ ${pt(kd("có dấu", "giữ nguyên", "Ngữ nghĩa")["recall@10"], 0)} xuống ${pt(kd("không dấu", "giữ nguyên", "Ngữ nghĩa")["recall@10"], 0)} phần trăm khi người dân gõ không dấu. Nhóm đo điều đó cho sạch, rồi sửa nó bằng một mô hình ngôn ngữ nhỏ học từ chính kho luật."
 
