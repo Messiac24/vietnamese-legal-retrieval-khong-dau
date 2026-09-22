@@ -71,7 +71,15 @@ Trên RTX 5060 Ti 16 GB: bước 1 mất 5,5 phút, chủ yếu là tách từ b
 mã hóa 154.176 đoạn, mất 11,1 phút với AITeamVN, 5,0 phút với bkai và 4,0 phút với
 bkai đã fine-tune. Các bước 3 tới 7 mỗi bước dưới 3 phút.
 
-Demo ở `notebooks/demo.ipynb`, cần chạy xong bảy bước trên trước.
+## Demo
+
+`notebooks/demo.ipynb` chạy trên máy (sau bảy bước trên) hoặc trên Kaggle:
+
+1. `python kaggle/dong_goi.py` gom mã và dữ liệu đã dựng thành `kaggle/vlr-demo.zip`.
+2. Tải tệp zip lên Kaggle Datasets, đặt tên `vlr-demo`.
+3. Import `notebooks/demo.ipynb` vào Kaggle, thêm dataset `vlr-demo`, bật Internet
+   (để tải mô hình AITeamVN), chọn GPU T4.
+4. Chạy ô 1 và ô 2 trước, các ô sau chạy từng ô.
 
 ## Thư mục
 
@@ -83,6 +91,7 @@ Demo ở `notebooks/demo.ipynb`, cần chạy xong bảy bước trên trước.
 | `reports/audit/` | Kết quả kiểm toán dữ liệu |
 | `reports/eval/` | Kết quả đánh giá, quét tham số |
 | `notebooks/` | Notebook demo |
+| `kaggle/` | Script gom mã và dữ liệu để chạy demo trên Kaggle |
 | `docs/slides/` | Mã dựng slide và tệp pptx |
 | `docs/NGHIEN_CUU_LIEN_QUAN.md` | Nghiên cứu liên quan và tài liệu tham khảo |
 

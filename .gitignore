@@ -23,3 +23,7 @@ node_modules/
 .venv/
 .env
 logs/
+
+# Gói dữ liệu cho Kaggle, dựng lại bằng kaggle/dong_goi.py
+kaggle/vlr-demo/
+kaggle/vlr-demo.zip
