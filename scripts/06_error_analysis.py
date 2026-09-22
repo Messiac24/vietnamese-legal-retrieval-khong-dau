@@ -1,18 +1,12 @@
-"""Bước 6: đối chiếu chéo hai tầng và phân loại ca sai.
+"""Bước 6: đối chiếu chéo BM25 với tầng ngữ nghĩa, lấy ca sai để đọc tay.
 
-Chạy:
     C:/Python314/python.exe scripts/06_error_analysis.py
 
 Sinh ra:
-    reports/eval/crossover.csv        bảng bốn ô BM25 đúng/sai x dense đúng/sai
+    reports/eval/crossover.csv           bảng bốn ô BM25 đúng/sai x ngữ nghĩa đúng/sai
     reports/eval/crossover_examples.csv  ví dụ cho từng ô
-    reports/eval/error_taxonomy.csv   30 ca sai của hệ tốt nhất, chờ đọc tay
-    reports/eval/venn_bm25_dense.png  hình minh họa
-
-Bảng bốn ô là bằng chứng trực tiếp cho luận điểm của đồ án. Nếu ô "BM25 đúng,
-dense sai" và ô "BM25 sai, dense đúng" đều lớn thì hai hướng thật sự bù nhau và
-việc hợp nhất có cơ sở. Nếu một ô gần bằng không thì một tầng chỉ là tập con của
-tầng kia, và phải nói thẳng ra như vậy.
+    reports/eval/error_taxonomy.csv      tối đa 30 ca sai của hệ tốt nhất, nhãn đọc tay
+    reports/eval/venn_bm25_dense.png     hình Venn
 """
 import json
 import sys
@@ -78,7 +72,7 @@ def main() -> None:
     if cot_de not in pq.columns:
         raise SystemExit(f"Không có cột {cot_de} trong per_query_test.csv")
     print(f"So sánh: {cot_bm}  và  {cot_de}")
-    print("Dùng mô hình ngữ nghĩa SẠCH. So với mô hình đã thấy dữ liệu này khi\n"
+    print("Dùng mô hình ngữ nghĩa sạch. So với mô hình đã thấy dữ liệu này khi\n"
           "huấn luyện thì bảng bốn ô cũng nhiễm theo.")
 
     bm = pq[cot_bm].astype(bool)
@@ -99,9 +93,7 @@ def main() -> None:
     print(bang.to_string(index=False))
     ve_venn(chi_bm, chi_de, ca_hai, khong_ai)
 
-    # Cả bốn dòng dưới đây đo CÙNG MỘT thước: tỷ lệ câu hỏi có ít nhất một điều
-    # gold nằm trong top-10. Không trộn với Recall@10 trung bình, vì câu hỏi có
-    # nhiều gold cho ra recall lẻ và hai con số sẽ lệch nhau vài phần trăm.
+    # bốn dòng dưới đều là tỷ lệ câu có ít nhất một gold trong top-10, không phải Recall@10
     hop = pq[f"dung@10::{chon['he_sach_tot_nhat']}"].astype(bool)
     tran = pd.DataFrame([
         {"he_thong": "BM25", "ty_le_dung_top10_pct": round(100 * bm.mean(), 2)},
@@ -117,10 +109,7 @@ def main() -> None:
     print(tran.to_string(index=False))
     print(f"    BM25 cứu riêng được {chi_bm} câu hỏi mà tầng ngữ nghĩa bỏ lỡ "
           f"({100 * chi_bm / len(pq):.2f} điểm phần trăm)")
-    # Hệ hợp nhất thật CÓ THỂ vượt dòng cuối, và thực tế đã vượt. Dòng cuối chỉ
-    # là trần khi phép hợp bị giới hạn trong top-10 của mỗi tầng. Hệ thật hợp
-    # nhất từ top-100, nên nó kéo được cả những điều luật đứng hạng 11 tới 100
-    # lên top-10. Gọi dòng đó là "trần lý thuyết" là sai, và số đo đã bác bỏ.
+    # hệ thật hợp nhất từ top-100 nên có thể vượt mức hợp top-10 của hai tầng
     vuot = 100 * hop.mean() - 100 * (bm | de).mean()
     if vuot > 0:
         print(f"    hệ hợp nhất VƯỢT dòng cuối {vuot:.2f} điểm phần trăm, vì nó "
@@ -137,7 +126,7 @@ def main() -> None:
         config.EVAL_DIR / "crossover_examples.csv", **config.CSV_KW)
     print("    -> reports/eval/crossover_examples.csv")
 
-    # ---------- Ca sai của hệ tốt nhất ----------
+    # Ca sai của hệ tốt nhất
     tot_nhat = chon["he_sach_tot_nhat"]
     cot_tot = f"dung@10::{tot_nhat}"
     sai = pq[~pq[cot_tot].astype(bool)]
@@ -172,8 +161,7 @@ def main() -> None:
         })
     df_sai = pd.DataFrame(hang)
 
-    # Nhãn nguyên nhân do người đọc tay, giữ ở tệp NGUỒN docs/nhan_loi_doc_tay.csv
-    # chứ không gõ thẳng vào tệp này. Gõ vào đây thì lần chạy sau mất sạch.
+    # nhãn đọc tay nằm ở docs/nhan_loi_doc_tay.csv, ghép vào mỗi lần chạy
     nhan_path = config.ROOT / "docs" / "nhan_loi_doc_tay.csv"
     if nhan_path.exists():
         nhan = pd.read_csv(nhan_path, encoding="utf-8-sig")

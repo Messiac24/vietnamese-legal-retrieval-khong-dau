@@ -1,8 +1,5 @@
-"""Câu hỏi gõ không dấu: bỏ dấu, nhận diện, và phục hồi dấu.
-
-Phục hồi dấu dùng mô hình ngôn ngữ bigram trên âm tiết, học từ chính kho điều
-luật cộng câu hỏi train, rồi giải bằng Viterbi. Không cần tải mô hình nào thêm,
-và từ vựng pháp lý có sẵn trong kho nên phục hồi đúng những từ cần để tìm luật.
+"""Bỏ dấu và phục hồi dấu tiếng Việt. Phục hồi bằng bigram âm tiết học từ kho luật,
+giải bằng Viterbi.
 """
 import math
 import pickle
@@ -16,25 +13,22 @@ _TACH = re.compile(r"(\w+)", re.UNICODE)
 
 
 def bo_dau(s: str) -> str:
-    """Bỏ mọi dấu thanh và dấu mũ, đổi đ thành d. Giữ hoa thường."""
+    """Đổi cả đ thành d, giữ hoa thường."""
     s = unicodedata.normalize("NFD", s)
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
     return unicodedata.normalize("NFC", s.replace("đ", "d").replace("Đ", "D"))
 
 
 def co_dau(s: str) -> bool:
-    """True nếu chuỗi có ít nhất một chữ mang dấu tiếng Việt."""
     s = unicodedata.normalize("NFC", s)
     return bo_dau(s) != s
 
 
 def am_tiet(s: str) -> list[str]:
-    """Tách thành âm tiết chữ thường, bỏ dấu câu. Không tách từ ghép."""
     return _TU.findall(unicodedata.normalize("NFC", s).lower())
 
 
 class PhucHoiDau:
-    """Mô hình bigram âm tiết, nội suy với unigram, giải bằng Viterbi."""
 
     def __init__(self, van_ban, lam: float = 0.9):
         self.lam = lam
@@ -85,7 +79,7 @@ class PhucHoiDau:
         return kq[::-1]
 
     def phuc_hoi(self, s: str) -> str:
-        """Phục hồi dấu cho cả câu, giữ nguyên dấu câu và chữ hoa đầu âm tiết."""
+        """Giữ nguyên dấu câu và chữ hoa."""
         phan = _TACH.split(unicodedata.normalize("NFC", s))
         vi_tri = [i for i in range(1, len(phan), 2)]
         moi = self.phuc_hoi_am_tiet([phan[i].lower() for i in vi_tri])
@@ -114,7 +108,7 @@ class PhucHoiDau:
 
 
 def do_chinh_xac(goc: str, phuc_hoi: str) -> tuple[int, int]:
-    """(số âm tiết khớp, tổng số âm tiết), so không phân biệt hoa thường."""
+    """(số âm tiết khớp, tổng số âm tiết)."""
     a, b = am_tiet(goc), am_tiet(phuc_hoi)
     if len(a) != len(b):
         raise ValueError(f"lệch số âm tiết: {len(a)} so với {len(b)}")

@@ -1,7 +1,4 @@
-"""Nơi duy nhất chứa hằng số của đồ án.
-
-Muốn đổi tham số thì sửa ở đây, không rải số ma thuật khắp mã.
-"""
+"""Hằng số và đường dẫn của đồ án."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -71,11 +68,7 @@ CHUNK_TOP = 500             # số đoạn tốt nhất lấy ra trước khi g�
 
 BKAI_FT_DIR = RUNS_DIR / "bkai_ft"
 
-# Nhiễm bẩn dữ liệu huấn luyện của chính mô hình công khai.
-# Model card của bkai ghi rõ: "80% of the training set from the Legal Text
-# Retrieval Zalo 2021 challenge". Tập test của đồ án lại được cắt ra từ đúng tập
-# train đó, nên bkai đã nhìn thấy phần lớn câu hỏi test kèm nhãn đúng.
-# Model card của AITeamVN ghi: "Our model was not trained on this dataset".
+# Theo model card: bkai học 80% tập train Zalo 2021, tập test ở đây cắt ra từ đó
 NHIEM_BAN = {
     "bkai": "Huấn luyện trên 80% tập train Zalo 2021 (theo model card)",
     "bkai_ft": "Kế thừa nhiễm bẩn của bkai, cộng thêm fine-tune của nhóm",
@@ -89,9 +82,7 @@ FT_BATCH = 32
 FT_LR = 2e-5
 FT_WARMUP_RATIO = 0.1
 FT_HARD_NEGATIVES = 4
-# Batch 32 x 6 chuoi 256 token kem gradient lam tran 16 GB VRAM (do 2026-09-05).
-# CachedMultipleNegativesRankingLoss giu nguyen batch hieu dung 32 nhung chia
-# thanh cac lo nho, nen so am trong lo van la 32 ma bo nho chi bang lo nho.
+# batch 32 làm tràn 16 GB, loss bản Cached chia lô nhỏ mà vẫn giữ 32 mẫu âm
 FT_MINI_BATCH = 8
 
 # Câu hỏi gõ không dấu
@@ -104,6 +95,5 @@ CSV_KW = {"index": False, "encoding": "utf-8-sig"}
 
 
 def ensure_dirs() -> None:
-    """Tạo các thư mục đầu ra nếu chưa có."""
     for d in (DATA_DIR, RAW_DIR, INDEX_DIR, AUDIT_DIR, EVAL_DIR, RUNS_DIR):
         d.mkdir(parents=True, exist_ok=True)

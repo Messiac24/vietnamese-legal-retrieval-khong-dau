@@ -1,11 +1,6 @@
-"""Sinh dữ liệu và hình nền cho bộ slide.
+"""Đếm phân bố độ dài điều luật cho biểu đồ ở slide 9, và vẽ nền bìa.
 
-Chạy:
     C:/Python314/python.exe docs/slides/make_assets.py
-
-Biểu đồ trong slide vẽ bằng biểu đồ gốc của PowerPoint từ build.js. Tệp này chỉ
-làm hai việc mà build.js không tự làm được: đếm độ dài 61k điều luật từ parquet,
-và vẽ nền trang bìa.
 """
 import json
 import sys
@@ -27,7 +22,6 @@ TRAN_TU = 140  # 256 token PhoBERT tương đương khoảng 140 từ tiếng Vi
 
 
 def do_dai() -> None:
-    """Phân bố độ dài điều luật, ghi ra reports/audit/do_dai_dieu.json cho build.js."""
     arts = pd.read_parquet(config.ARTICLES_PATH, columns=["text"])
     so_tu = arts["text"].str.split().str.len().fillna(0).astype(int)
     vuot = 100 * float((so_tu > TRAN_TU).mean())
@@ -44,7 +38,6 @@ def do_dai() -> None:
 
 
 def ve_bia() -> None:
-    """Nền bìa 16:9: các dòng chữ mờ gợi một trang văn bản luật. Tự vẽ để khỏi vướng bản quyền."""
     rng = np.random.default_rng(config.SEED)
     nen = "#16222C"
     fig, ax = plt.subplots(figsize=(13.333, 7.5))

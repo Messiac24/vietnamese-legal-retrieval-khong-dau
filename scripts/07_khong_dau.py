@@ -1,21 +1,19 @@
-"""Bước 7: câu hỏi gõ không dấu.
+"""Bước 7: câu hỏi gõ không dấu và gõ dấu một nửa.
 
-Chạy:
     C:/Python314/python.exe scripts/07_khong_dau.py
 
 Sinh ra:
-    data/index/bm25_khong_dau/            chỉ mục BM25 trên văn bản đã bỏ dấu
-    data/index/phuc_hoi_dau.pkl           mô hình phục hồi dấu
-    reports/eval/khong_dau_tuning.csv     lambda và alpha quét trên val
-    reports/eval/khong_dau_tach_tu.csv    tách ảnh hưởng của cách tách từ, trên val
-    reports/eval/khong_dau_params.json    tham số đã chốt trên val
-    reports/eval/khong_dau.csv            bảng kết quả trên test, ba kiểu gõ
-    reports/eval/khong_dau_vi_du.csv      câu hỏi, bản bỏ dấu, bản phục hồi
-    reports/eval/khong_dau_loi.csv        phục hồi sai có làm hỏng truy hồi không
+    data/index/bm25_khong_dau/          chỉ mục BM25 trên văn bản bỏ dấu
+    data/index/phuc_hoi_dau.pkl         mô hình phục hồi dấu
+    reports/eval/khong_dau_tuning.csv   lambda và alpha quét trên val
+    reports/eval/khong_dau_tach_tu.csv  ảnh hưởng riêng của cách tách từ, trên val
+    reports/eval/khong_dau_params.json  tham số đã chốt
+    reports/eval/khong_dau.csv          kết quả trên test, ba kiểu gõ
+    reports/eval/khong_dau_vi_du.csv    câu gốc, bản bỏ dấu, bản phục hồi
+    reports/eval/khong_dau_loi.csv      phục hồi sai ảnh hưởng truy hồi ra sao
 
-Câu không dấu và câu gõ dấu một nửa đều tạo bằng cách bỏ dấu câu hỏi gốc, nên
-gold giữ nguyên. Mô hình phục hồi dấu học từ kho điều luật và câu hỏi TRAIN;
-lambda và alpha chốt trên val; test chạy một lần.
+Câu không dấu tạo bằng cách bỏ dấu câu gốc nên nhãn giữ nguyên. Mô hình phục hồi
+học từ kho luật và câu hỏi train.
 """
 import json
 import random
@@ -40,7 +38,7 @@ def am_tiet_bo_dau(s: str) -> list[str]:
 
 
 def bo_dau_mot_nua(s: str, rng: random.Random, p: float = 0.5) -> str:
-    """Mô phỏng người gõ dấu một nửa: mỗi âm tiết bị bỏ dấu với xác suất p."""
+    """Mỗi âm tiết bị bỏ dấu với xác suất p."""
     phan = _TACH.split(s)
     for i in range(1, len(phan), 2):
         if rng.random() < p:
@@ -63,7 +61,6 @@ def chi_so(runs: dict, gold: dict) -> dict:
 
 
 def chay_he(text, bm, bm_kd, de, ts, alpha_kd):
-    """Mọi hệ cho một bộ câu hỏi. Trả về dict tên hệ -> runs."""
     K = config.TOPK_FUSION
     a = ts["weighted"]["alpha"]
     r = {}
@@ -91,8 +88,7 @@ def main() -> None:
     kd_va = {q: diacritics.bo_dau(t) for q, t in text_va.items()}
     kd_te = {q: diacritics.bo_dau(t) for q, t in text_te.items()}
 
-    # Câu hỏi gốc nào không có lấy một chữ mang dấu? Số này cho biết tập gốc
-    # hoàn toàn là câu đủ dấu, nên phần không dấu bên dưới đều do máy tạo ra.
+    # câu gốc nào không có chữ mang dấu (kết quả là 0: tập gốc toàn câu đủ dấu)
     nham = [q for q, t in {**text_va, **text_te}.items() if not diacritics.co_dau(t)]
     print(f"\nCâu hỏi gốc không có chữ nào mang dấu: {len(nham)} trên "
           f"{len(text_va) + len(text_te)}")
@@ -134,7 +130,7 @@ def main() -> None:
     bm = lexical.BM25Index(arts, **ts["bm25"])
     de = dense.DenseIndex.load(config.INDEX_DIR / ts["dense"]["mo_hinh"])
 
-    print("\n[4] Quét alpha trên val KHÔNG DẤU cho hợp nhất BM25 bỏ dấu + ngữ nghĩa")
+    print("\n[4] Quét alpha trên val không dấu cho hợp nhất BM25 bỏ dấu + ngữ nghĩa")
     r_va = chay_he(kd_va, bm, bm_kd, de, ts, None)
     for a in config.ALPHA_GRID:
         hop = pipeline.hop_nhat_alpha(r_va["BM25 bỏ dấu"], r_va["Ngữ nghĩa"], a, config.TOPK_FUSION)
@@ -145,8 +141,7 @@ def main() -> None:
     print(f"    chốt alpha = {alpha_kd}")
     pd.DataFrame(hang_tune).to_csv(config.EVAL_DIR / "khong_dau_tuning.csv", **config.CSV_KW)
 
-    # Chỉ mục bỏ dấu đổi hai thứ cùng lúc: bỏ dấu, và tách theo âm tiết thay vì
-    # tách từ bằng pyvi. Đo thêm một chỉ mục âm tiết còn dấu để tách hai phần ra.
+    # chỉ mục bỏ dấu còn đổi cả cách tách từ, nên đo thêm bản âm tiết còn dấu
     print("\n[5] Cách tách từ đóng góp bao nhiêu trong mức giảm, đo trên val")
     am = arts[["article_id", "title", "text"]].copy()
     am["tokens"] = [diacritics.am_tiet(f"{a} {b}") for a, b in zip(am["title"], am["text"])]
@@ -170,11 +165,11 @@ def main() -> None:
     ph_te = {q: ph.phuc_hoi(t) for q, t in kd_te.items()}
     tre_ph = (time.perf_counter() - t0) * 1000 / len(kd_te)
 
-    # Người gõ dấu một nửa: âm tiết đã có dấu được giữ nguyên, phần thiếu mới sửa
+    # câu gõ dấu một nửa
     rng = random.Random(config.SEED)
     nua_te = {q: bo_dau_mot_nua(t, rng) for q, t in text_te.items()}
     ph_nua = {q: ph.phuc_hoi(t) for q, t in nua_te.items()}
-    # Phục hồi dấu cho cả câu vốn đã đủ dấu: giá phải trả khi bỏ cổng định tuyến
+    # câu đủ dấu vẫn cho qua phục hồi, xem có bị sửa sai không
     ph_co = {q: ph.phuc_hoi(t) for q, t in text_te.items()}
 
     def do_dung(ban: dict) -> tuple[float, int]:
@@ -225,8 +220,7 @@ def main() -> None:
     print()
     print(bang.to_string(index=False))
 
-    # dung_top10 ở đây là "có ít nhất một gold trong top-10", cùng quy ước với
-    # dung@10 của script 06, khác recall@10 ở bảng trên với 5 câu có hai gold.
+    # dung_top10: có ít nhất một gold trong top-10, như dung@10 ở script 06
     xep_goc = pipeline.chi_diem(r_co["Hợp nhất"])
     xep_ph = pipeline.chi_diem(r_ph["Hợp nhất"])
     vi_du = []

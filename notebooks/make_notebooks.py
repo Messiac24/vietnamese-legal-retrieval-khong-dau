@@ -1,14 +1,6 @@
-"""Sinh hai notebook demo từ MỘT nguồn duy nhất.
+"""Sinh hai notebook demo từ cùng một nguồn.
 
-Chạy:
     C:/Python314/python.exe notebooks/make_notebooks.py
-
-Ghi ra:
-    notebooks/demo.ipynb            bản chiếu khi bảo vệ, markdown gọn
-    notebooks/demo_giai_thich.ipynb bản chú giải để đọc hiểu, markdown dày
-
-Hai notebook chạy **cùng một mã**, chỉ khác phần giải thích. Viết tay hai tệp
-riêng thì sớm muộn chúng lệch nhau, và bản chiếu sẽ chạy khác bản người đọc học.
 """
 import json
 from pathlib import Path

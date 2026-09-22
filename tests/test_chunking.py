@@ -1,9 +1,4 @@
-"""Kiểm thử cắt điều luật thành đoạn.
-
-46,2% điều luật dài hơn 200 từ, trong khi PhoBERT chỉ nhận 256 token (khoảng 130
-tới 150 từ tiếng Việt). Cắt cụt là mất phần đuôi của gần một nửa số điều, mà đuôi
-điều luật thường là chỗ ghi mức phạt và ngoại lệ.
-"""
+"""Kiểm thử cắt điều luật thành đoạn."""
 import pandas as pd
 
 from vlr import chunking

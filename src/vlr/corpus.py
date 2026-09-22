@@ -1,7 +1,4 @@
-"""Tải và nạp bộ dữ liệu Zalo AI Challenge 2021 (bản BEIR trên HuggingFace).
-
-Bộ dữ liệu không nằm trong kho mã: nặng 115 MB và tải lại được bằng một lệnh.
-"""
+"""Tải và nạp bộ Zalo AI 2021, bản BEIR trên HuggingFace."""
 import json
 import urllib.request
 from pathlib import Path
@@ -12,7 +9,7 @@ from vlr import config
 
 
 def _fetch(url: str, dest: Path) -> None:
-    """Tải một tệp, in tiến trình theo MB. Bỏ qua nếu đã có."""
+    """Tải một tệp, bỏ qua nếu đã có."""
     if dest.exists() and dest.stat().st_size > 0:
         print(f"  đã có {dest.name} ({dest.stat().st_size / 1e6:.1f} MB), bỏ qua")
         return
@@ -37,7 +34,6 @@ def _fetch(url: str, dest: Path) -> None:
 
 
 def download() -> None:
-    """Tải bốn tệp nguồn về data/raw/."""
     config.ensure_dirs()
     print("Tải bộ dữ liệu Zalo AI 2021 từ HuggingFace:")
     for ten_dich, duong_dan in config.RAW_FILES.items():
@@ -56,11 +52,7 @@ def _read_jsonl(ten: str) -> list[dict]:
 
 
 def parse_article_id(article_id: str) -> tuple[str, int]:
-    """Tách '01/2009/tt-bnn+1' thành ('01/2009/tt-bnn', 1).
-
-    Tách ở dấu cộng CUỐI CÙNG, vì số hiệu văn bản về nguyên tắc có thể chứa
-    dấu cộng.
-    """
+    """'01/2009/tt-bnn+1' -> ('01/2009/tt-bnn', 1). Tách ở dấu cộng cuối."""
     if "+" not in article_id:
         raise ValueError(
             f"id điều luật sai định dạng, thiếu dấu cộng: {article_id!r}"

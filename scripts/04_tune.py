@@ -1,6 +1,5 @@
-"""Bước 4: quét tham số TRÊN TẬP VAL.
+"""Bước 4: quét tham số trên val.
 
-Chạy:
     C:/Python314/python.exe scripts/04_tune.py
 
 Sinh ra:
@@ -10,12 +9,7 @@ Sinh ra:
     reports/eval/tuning_alpha.csv     trọng số alpha
     reports/eval/chosen_params.json   cấu hình chốt lại
 
-Đây là bước dễ gian lận nhất của cả đồ án. Bộ dữ liệu gốc không có tập
-validation, nên cách làm tiện tay là quét thẳng trên test rồi công bố con số tốt
-nhất. Làm vậy thì con số công bố chính là con số đã chỉnh cho vừa test, không
-còn đo được năng lực thật.
-
-Script này chỉ đọc `split == "val"` và có `assert` chặn đường tới test.
+Chỉ đọc split == "val", có assert chặn test.
 """
 import sys
 import time
@@ -92,9 +86,7 @@ def quet_pooling(gold, text) -> tuple[dict, pd.DataFrame, dict]:
     df["nhiem_ban"] = df["mo_hinh"].map(lambda m: config.NHIEM_BAN.get(m, ""))
     df = _ghi(df.sort_values(f"recall@{K}", ascending=False), "tuning_pooling.csv")
 
-    # Mô hình cho cấu hình CHÍNH THỨC phải là mô hình sạch. bkai được huấn luyện
-    # trên 80% tập train Zalo 2021, mà tập test của đồ án lại cắt ra từ đúng tập
-    # đó, nên điểm của nó không đo được năng lực trên dữ liệu chưa từng thấy.
+    # cấu hình chính thức chỉ chọn trong mô hình sạch, bkai đã học tập train Zalo
     sach = df[df["mo_hinh"].isin(config.MO_HINH_SACH)]
     if sach.empty:
         raise SystemExit(

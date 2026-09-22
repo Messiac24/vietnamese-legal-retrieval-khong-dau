@@ -1,14 +1,5 @@
-"""Kiểm toán dữ liệu: trùng lặp, gần trùng, chồng lấn giữa các tập.
-
-Nguyên tắc của đồ án: không tin split do người khác chia. Mỗi hàm ở đây sinh ra
-bằng chứng kiểm tra được, chứ không âm thầm dọn dữ liệu.
-
-Ba mức trùng lặp cần ba công cụ khác nhau:
-
-    Mức                      Ví dụ                              Công cụ
-    trùng từng ký tự         copy nguyên điều sang văn bản khác  SHA1
-    gần trùng                sửa vài chữ, đổi số hiệu            SimHash + Hamming
-    trùng ở mức câu hỏi      hai câu hỏi diễn đạt khác nhau      Jaccard n-gram
+"""Kiểm toán dữ liệu: điều trùng nguyên văn (SHA1), gần trùng (SimHash), câu hỏi
+chồng lấn giữa các tập (Jaccard n-gram).
 """
 import hashlib
 import unicodedata
@@ -33,12 +24,7 @@ def _token_hash(token: str) -> int:
 
 
 def simhash64(tokens) -> int:
-    """SimHash 64 bit.
-
-    Mỗi token góp +1 cho những bit nó bật và -1 cho những bit nó tắt. Bit kết
-    quả bật khi tổng dương. Hai văn bản chia sẻ phần lớn token sẽ cho hai mã
-    lệch nhau ít bit, kể cả khi khác nhau vài chỗ.
-    """
+    """SimHash 64 bit trên danh sách token."""
     tokens = list(tokens)
     if not tokens:
         return 0
@@ -55,12 +41,11 @@ def simhash64(tokens) -> int:
 
 
 def hamming(a: int, b: int) -> int:
-    """Số bit khác nhau giữa hai mã 64 bit."""
     return ((a ^ b) & _MASK64).bit_count()
 
 
 def jaccard(a: set, b: set) -> float:
-    """Độ trùng lặp hai tập. Trả 0 khi cả hai rỗng, không chia cho không."""
+    """Trả 0 khi cả hai tập rỗng."""
     if not a and not b:
         return 0.0
     hop = len(a | b)
@@ -68,11 +53,7 @@ def jaccard(a: set, b: set) -> float:
 
 
 def exact_duplicate_groups(df: pd.DataFrame) -> dict[str, str]:
-    """Gom điều luật trùng nguyên văn thành nhóm.
-
-    Trả về ánh xạ article_id -> group_id. Điều không trùng ai vẫn có nhóm
-    riêng gồm đúng một phần tử, để phía dùng không phải xử lý trường hợp thiếu.
-    """
+    """article_id -> group_id. Điều không trùng ai vẫn có nhóm riêng một phần tử."""
     return {
         aid: content_hash(f"{tieu_de} {noi_dung}")
         for aid, tieu_de, noi_dung in zip(df["article_id"], df["title"], df["text"])
@@ -82,21 +63,10 @@ def exact_duplicate_groups(df: pd.DataFrame) -> dict[str, str]:
 def near_duplicate_pairs(
     df: pd.DataFrame, threshold: int, bands: int = 8, max_bucket: int = 2000
 ) -> list[tuple[str, str, int]]:
-    """Tìm các cặp điều luật gần trùng bằng SimHash chia băng.
+    """Cặp điều gần trùng. Chia mã SimHash thành băng (LSH) để khỏi so 1,9 tỷ cặp.
 
-    So mọi cặp trong 61.425 điều là 1,9 tỷ phép so, không chạy nổi. Cách làm:
-    chia mã 64 bit thành `bands` băng bằng nhau, hai điều chỉ được đem ra so
-    khi rơi cùng một băng. Đây là kỹ thuật LSH: đánh đổi một ít độ phủ để lấy
-    tốc độ.
-
-    `df` cần hai cột: `article_id` và `tokens` (danh sách token đã tách từ).
-    Trả về danh sách (article_a, article_b, khoảng_cách_hamming).
-
-    `max_bucket` là chốt chặn: một băng gom quá nhiều điều thì số cặp phải so
-    tăng theo bình phương và bước kiểm toán treo. Băng vượt ngưỡng bị bỏ qua và
-    được đếm lại trong `near_duplicate_pairs.bo_qua`, để báo cáo chứ không im
-    lặng. Cùng một cặp thường rơi vào nhiều băng nên bỏ một băng hiếm khi mất
-    cặp thật.
+    Băng nào gom quá `max_bucket` điều thì bỏ qua, số băng bỏ qua ghi vào
+    `near_duplicate_pairs.bo_qua`.
     """
     ma = {
         aid: simhash64(toks) for aid, toks in zip(df["article_id"], df["tokens"])
@@ -130,22 +100,13 @@ def near_duplicate_pairs(
 
 
 def split_overlap(qrels_train: pd.DataFrame, qrels_test: pd.DataFrame) -> pd.DataFrame:
-    """Các câu hỏi xuất hiện ở cả train và test.
-
-    Đây là rò rỉ nặng nhất và cũng dễ bỏ sót nhất: chỉ cần một phép giao tập là
-    thấy, nhưng nếu tin split có sẵn thì không ai nhìn.
-    """
+    """Các câu hỏi có mặt ở cả train và test."""
     giao = sorted(set(qrels_train["query_id"]) & set(qrels_test["query_id"]))
     return pd.DataFrame({"query_id": giao, "loai": ["trung_id"] * len(giao)})
 
 
 def duplicate_queries(queries: pd.DataFrame) -> pd.DataFrame:
-    """Các query_id xuất hiện nhiều hơn một dòng trong queries.jsonl.
-
-    Cột `so_noi_dung_khac_nhau` là chỗ đáng lo: bằng 1 nghĩa là các dòng lặp
-    giống hệt nhau, khử trùng an toàn. Lớn hơn 1 nghĩa là cùng một id mang hai
-    câu hỏi khác nhau, lúc đó không được tự đoán dòng nào đúng.
-    """
+    """query_id lặp dòng. `so_noi_dung_khac_nhau` > 1 là cùng id nhưng khác câu hỏi."""
     dem = queries.groupby("query_id").agg(
         so_dong=("text", "size"), so_noi_dung_khac_nhau=("text", "nunique")
     )
@@ -158,11 +119,7 @@ def duplicate_queries(queries: pd.DataFrame) -> pd.DataFrame:
 def near_duplicate_queries(
     queries: pd.DataFrame, ids_a: set, ids_b: set, n: int, nguong: float
 ) -> pd.DataFrame:
-    """Câu hỏi ở nhóm A gần trùng câu hỏi ở nhóm B, đo bằng Jaccard n-gram.
-
-    Dùng chỉ mục ngược trên n-gram để không phải so mọi cặp: hai câu không có
-    n-gram nào chung thì Jaccard chắc chắn bằng 0, khỏi cần tính.
-    """
+    """Câu ở nhóm A gần trùng câu ở nhóm B theo Jaccard n-gram, lọc trước bằng chỉ mục ngược."""
     grams = {
         qid: textnorm.ngrams(textnorm.tokens(txt), n)
         for qid, txt in zip(queries["query_id"], queries["text"])
@@ -184,21 +141,13 @@ def near_duplicate_queries(
 
 
 def _bo_dau(s: str) -> str:
-    """Bỏ toàn bộ dấu tiếng Việt, kể cả chữ đ."""
     s = unicodedata.normalize("NFD", s)
     s = "".join(c for c in s if unicodedata.category(c) != "Mn")
     return s.replace("đ", "d").replace("Đ", "D")
 
 
 def duplicate_docs_by_diacritics(df: pd.DataFrame) -> pd.DataFrame:
-    """Các văn bản bị tách đôi chỉ vì khác dấu tiếng Việt trong số hiệu.
-
-    Ví dụ thật trong kho: `155/2020/nd-cp` và `155/2020/nđ-cp` là cùng một Nghị
-    định nhưng nằm dưới hai mã, mỗi mã đủ 310 điều. Nếu không phát hiện, hệ trả
-    về bản này còn nhãn ghi bản kia thì bị chấm sai oan.
-
-    `df` cần cột `doc_id`.
-    """
+    """Văn bản bị tách đôi chỉ vì khác dấu trong số hiệu, như 155/2020/nd-cp và nđ-cp."""
     nhom: dict[str, list[str]] = defaultdict(list)
     for d in sorted(df["doc_id"].unique()):
         nhom[_bo_dau(d)].append(d)

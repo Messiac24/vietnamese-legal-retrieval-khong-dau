@@ -16,7 +16,7 @@ def test_trich_khoan_cat_o_ranh_gioi_tu():
 
 
 def _tro_ly_gia(ket_qua, da_phuc_hoi=False):
-    """Chỉ dựng phần định dạng câu trả lời, không nạp chỉ mục hay mô hình."""
+    """Chỉ dựng phần định dạng câu trả lời, không nạp chỉ mục."""
     t = TroLyTraCuu.__new__(TroLyTraCuu)
     t.tim = lambda cau_hoi, k=3: {
         "cau_hoi": cau_hoi, "da_phuc_hoi_dau": da_phuc_hoi,

@@ -1,9 +1,5 @@
-"""Ghép các tầng lại thành một lượt truy hồi hoàn chỉnh.
-
-Mô-đun này tồn tại để hai script `04_tune.py` và `05_evaluate.py` dùng chung
-đúng một đường chạy. Nếu để mỗi script tự ghép lấy, chỉ cần một chỗ lệch nhau
-là tham số chọn trên val không còn là tham số dùng khi chấm test, và toàn bộ
-phần đối chứng mất giá trị.
+"""Một lượt truy hồi hoàn chỉnh. 04_tune.py và 05_evaluate.py dùng chung để val và test
+chạy đúng một đường.
 """
 import json
 
@@ -13,11 +9,7 @@ from vlr import config, dense, fusion, lexical, metrics, textnorm
 
 
 def load_split(split: str) -> tuple[dict[str, set], dict[str, str]]:
-    """Trả về (gold theo câu hỏi, nội dung câu hỏi) cho một tập.
-
-    Chỉ đọc đúng tập được yêu cầu. `04_tune.py` gọi với 'val' và có assert
-    riêng để bảo đảm không chạm vào 'test'.
-    """
+    """(gold theo câu hỏi, nội dung câu hỏi) của một tập."""
     if split not in ("train", "val", "test"):
         raise ValueError(f"split phải là train, val hoặc test, nhận {split!r}")
     qr = pd.read_parquet(config.QRELS_PATH)
@@ -31,12 +23,7 @@ def load_split(split: str) -> tuple[dict[str, set], dict[str, str]]:
 
 
 def gold_mo_rong(gold: dict[str, set]) -> dict[str, set]:
-    """Mở rộng mỗi gold thành cả nhóm điều luật trùng nguyên văn.
-
-    Chỉ dùng cho phân tích độ nhạy, KHÔNG dùng cho con số chính thức: 719 trên
-    719 nhóm trùng đều vắt qua nhiều văn bản khác nhau, nên trả về một điều
-    cùng chữ ở Thông tư khác vẫn là trích dẫn sai.
-    """
+    """Mở rộng gold ra cả nhóm điều trùng nguyên văn. Chỉ dùng cho phân tích độ nhạy."""
     arts = pd.read_parquet(config.ARTICLES_PATH, columns=["article_id", "dup_group"])
     theo_nhom: dict[str, list[str]] = {}
     for aid, g in zip(arts["article_id"], arts["dup_group"]):
@@ -49,7 +36,6 @@ def gold_mo_rong(gold: dict[str, set]) -> dict[str, set]:
 
 
 def bm25_runs(idx: lexical.BM25Index, text: dict[str, str], top_k: int) -> dict:
-    """Chạy BM25 cho mọi câu hỏi. Tách từ một lần rồi dùng lại."""
     return {
         q: idx.search_tokens(textnorm.tokens(t), top_k) for q, t in text.items()
     }
@@ -57,7 +43,6 @@ def bm25_runs(idx: lexical.BM25Index, text: dict[str, str], top_k: int) -> dict:
 
 def dense_runs(idx: dense.DenseIndex, text: dict[str, str], top_k: int,
                pooling: str) -> dict:
-    """Chạy tầng ngữ nghĩa cho mọi câu hỏi, theo lô để dùng hết GPU."""
     ids = list(text)
     vecs = idx.encode_queries([text[q] for q in ids])
     kq = idx.search(vecs, top_k=top_k, pooling=pooling,
@@ -66,7 +51,6 @@ def dense_runs(idx: dense.DenseIndex, text: dict[str, str], top_k: int,
 
 
 def chi_diem(runs: dict) -> dict[str, list[str]]:
-    """Bỏ điểm, chỉ giữ thứ tự article_id, để đưa vào hàm chỉ số."""
     return {q: [a for a, _ in r] for q, r in runs.items()}
 
 

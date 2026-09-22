@@ -1,22 +1,15 @@
-"""Bước 3: huấn luyện tiếp bi-encoder bkai trên tập train đã dọn.
+"""Bước 3: huấn luyện tiếp bkai trên tập train đã dọn.
 
-Chạy:
     C:/Python314/python.exe scripts/03_finetune.py
 
 Sinh ra:
-    runs/bkai_ft/                        mô hình đã huấn luyện
-    runs/bkai_ft/history.csv             chỉ số theo epoch
-    runs/bkai_ft/train_config.json       cấu hình thật đã chạy
-    reports/audit/finetune_data_check.csv  bằng chứng không rò rỉ val và test
+    runs/bkai_ft/                          mô hình đã huấn luyện
+    runs/bkai_ft/history.csv               chỉ số theo epoch
+    runs/bkai_ft/train_config.json         cấu hình đã chạy
+    reports/audit/finetune_data_check.csv  kiểm tra không lẫn câu val và test
 
-Hàm mất mát là CachedMultipleNegativesRankingLoss: trong mỗi lô, đoạn dương của câu
-hỏi này chính là đoạn âm của câu hỏi khác. Nhờ vậy một lô 32 câu hỏi cho ra 32
-bài toán phân biệt 1 đúng trên 32 lựa chọn mà không cần gán nhãn thêm. Thêm 4
-đoạn âm khó lấy từ BM25 để mô hình phải phân biệt những điều luật trông giống
-nhau, chứ không chỉ những điều ngẫu nhiên chẳng liên quan.
-
-Việc chọn giữa mô hình gốc và mô hình này KHÔNG diễn ra ở đây: script chỉ huấn
-luyện. So sánh nằm ở bước 4, đo trên tập val.
+Loss là CachedMultipleNegativesRankingLoss, thêm 4 đoạn âm khó lấy từ BM25.
+Chọn giữa mô hình gốc và mô hình này làm ở bước 4, trên val.
 """
 import json
 import sys
@@ -33,7 +26,7 @@ SO_AM = config.FT_HARD_NEGATIVES
 
 
 def kiem_tra_ro_ri(qr: pd.DataFrame) -> set[str]:
-    """Chặn đường val và test lọt vào dữ liệu huấn luyện, và ghi lại bằng chứng."""
+    """Dừng nếu câu val hoặc test lọt vào dữ liệu huấn luyện, ghi kết quả ra tệp."""
     theo_tap = {t: set(g["query_id"]) for t, g in qr.groupby("split")}
     tr = theo_tap.get("train", set())
     va = theo_tap.get("val", set())
@@ -54,13 +47,7 @@ def kiem_tra_ro_ri(qr: pd.DataFrame) -> set[str]:
 
 
 def chon_doan_duong(gold_chunks: list[tuple[str, str]], q_toks: set[str]) -> str:
-    """Chọn đoạn nào của điều luật gold làm mẫu dương.
-
-    Điều luật gold có thể dài nhiều đoạn, mà chỉ một đoạn thật sự trả lời câu
-    hỏi. Lấy đoạn trùng nhiều từ nhất với câu hỏi. Đây là phép xấp xỉ rẻ tiền,
-    không phải nhãn thật, nên có thể chọn nhầm; nhưng dạy mô hình bằng một đoạn
-    gần đúng vẫn hơn là dạy bằng đoạn đầu tiên bất kể nội dung.
-    """
+    """Lấy đoạn của điều gold trùng nhiều từ nhất với câu hỏi làm mẫu dương. Chỉ là xấp xỉ."""
     tot, diem_tot = gold_chunks[0][1], -1
     for _, van_ban in gold_chunks:
         diem = len(q_toks & set(van_ban.split()))
@@ -148,9 +135,7 @@ def main() -> None:
     ds = Dataset.from_dict(cot)
     model = SentenceTransformer(config.BKAI_MODEL, device="cuda")
     model.max_seq_length = config.BKAI_MAX_LEN
-    # Dùng bản Cached: batch 32 với 6 chuỗi mỗi mẫu làm tràn 16 GB VRAM.
-    # Bản Cached chia thành lô nhỏ rồi ghép gradient lại, nên số âm trong lô
-    # vẫn là 32 mà bộ nhớ chỉ bằng một lô nhỏ.
+    # bản thường với batch 32 x 6 chuỗi tràn 16 GB VRAM
     loss = losses.CachedMultipleNegativesRankingLoss(
         model, mini_batch_size=config.FT_MINI_BATCH
     )

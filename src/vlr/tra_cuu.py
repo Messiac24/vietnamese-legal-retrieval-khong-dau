@@ -1,8 +1,5 @@
-"""Trợ lý tra cứu kiểu truy hồi: trả lời bằng cách trích nguyên văn khoản luật.
-
-Không có mô hình sinh chữ, nên trợ lý không bịa được câu nào: mọi câu trả lời là
-một đoạn có thật trong kho, kèm số hiệu điều luật để người dùng tự kiểm.
-Câu hỏi gõ không dấu được phục hồi dấu trước khi tìm.
+"""Trợ lý tra cứu: phục hồi dấu, tìm bằng hệ lai, trả lời bằng cách trích nguyên văn
+khoản luật.
 """
 import pandas as pd
 
@@ -10,7 +7,7 @@ from vlr import config, dense, diacritics, explain, fusion, lexical, pipeline, t
 
 
 def trich_khoan(doan: str, tieu_de: str, toi_da: int = 600) -> str:
-    """Bỏ tiêu đề điều mà bước chia đoạn đã ghép vào đầu, cắt gọn ở ranh giới từ."""
+    """Bỏ tiêu đề điều đã ghép ở đầu đoạn, cắt gọn ở ranh giới từ."""
     tien_to = f"{tieu_de.strip()}. "
     if doan.startswith(tien_to):
         doan = doan[len(tien_to):]
@@ -35,9 +32,7 @@ class TroLyTraCuu:
         self.ph = diacritics.PhucHoiDau.load(config.PHUC_HOI_DAU_PATH)
 
     def tim(self, cau_hoi: str, k: int = 3) -> dict:
-        # Phục hồi dấu cho mọi câu, không hỏi câu có dấu hay không. Âm tiết đã
-        # có dấu được giữ nguyên, nên câu gõ dấu một nửa cũng được sửa phần
-        # thiếu. Giá phải trả đo trên val: 0,9989 âm tiết đúng với câu đủ dấu.
+        # câu đủ dấu cũng cho qua, trên val vẫn giữ 0,9989 âm tiết đúng
         cau_tim = self.ph.phuc_hoi(cau_hoi)
         K = config.TOPK_FUSION
         bm = self.bm.search_tokens(textnorm.tokens(cau_tim), K)
@@ -71,8 +66,7 @@ class TroLyTraCuu:
             return "\n".join(dong + ["", "Không tìm được điều luật nào."])
         dau, *con_lai = r["ket_qua"]
         if dau["so_tu_khop"] == 0:
-            # Không một từ nào của câu hỏi có mặt trong điều luật: gần như chắc
-            # chắn câu hỏi nằm ngoài phạm vi kho luật đang có
+            # không từ nào khớp thì nhiều khả năng câu hỏi nằm ngoài kho luật
             dong.append("(Cảnh báo: không từ nào trong câu hỏi khớp điều luật bên dưới, "
                         "nhiều khả năng câu hỏi nằm ngoài phạm vi kho)")
         dong += [

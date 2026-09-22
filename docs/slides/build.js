@@ -1,16 +1,9 @@
-// Bộ slide báo cáo môn Xử lý ngôn ngữ tự nhiên - Nhóm 09
-// Đề tài: Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu (kết hợp từ khóa và ngữ nghĩa, phục hồi dấu bằng mô hình ngôn ngữ, kiểm toán rò rỉ dữ liệu ở cả bộ dữ liệu lẫn mô hình tiền huấn luyện)
+// Dựng bộ slide báo cáo, nhóm 09 môn Xử lý ngôn ngữ tự nhiên.
 //
-// Dựng lại bộ slide (chạy từ chính thư mục này):
+//     C:/Python314/python.exe make_assets.py
+//     node build.js          -> Nhom09_XLNNTN_BaoCao.pptx
 //
-//     C:/Python314/python.exe make_assets.py    -> img/cover.png, reports/audit/do_dai_dieu.json
-//     npm install pptxgenjs
-//     node build.js                             -> Nhom09_XLNNTN_BaoCao.pptx
-//
-// Dàn ý ở DAN_Y.md: 15 slide nói trong khoảng 10 phút, slide 16 là tài liệu tham khảo.
-// KHÔNG gõ tay con số nào vào tệp này. Mọi số liệu đọc từ reports/ ở thư mục gốc
-// dự án. Danh sách tài liệu tham khảo đọc từ docs/NGHIEN_CUU_LIEN_QUAN.md.
-// Ghi chú thuyết trình nằm trong addNotes() của từng slide.
+// Số liệu đọc từ reports/, tài liệu tham khảo đọc từ docs/NGHIEN_CUU_LIEN_QUAN.md.
 const fs = require("fs");
 const path = require("path");
 const pptx = require("pptxgenjs");
@@ -20,7 +13,7 @@ const ROOT = path.resolve(__dirname, "..", "..");
 const AUDIT = path.join(ROOT, "reports", "audit");
 const EVAL = path.join(ROOT, "reports", "eval");
 
-/* ---------------------- đọc số liệu từ reports/ ---------------------- */
+// đọc số liệu từ reports/
 function tachDong(dong) {
   const o = [];
   let cur = "", trongNhay = false;
@@ -97,7 +90,7 @@ const kd = (dk, cach, ten) => {
 const ERRS = docCsv(path.join(EVAL, "error_summary.csv"));
 const tocDo = Number(DE_SACH["latency_p50_ms"]) / Number(BM["latency_p50_ms"]);
 
-/* ---------------------------- khuôn slide ---------------------------- */
+// khuôn slide
 p.layout = "LAYOUT_WIDE"; // 13,333 x 7,5 inch
 p.author = "Nhom 09";
 p.title = "Tim kiem dieu luat tieng Viet cho cau hoi go thieu dau";
@@ -138,8 +131,7 @@ function soLon(s, x, y, w, giaTri, chuThich, mau, co = 44) {
   tx(s, chuThich, { x, y: y + co / 60 + 0.06, w, h: 0.62, fontSize: 13, color: INK2, valign: "top" });
 }
 
-// Biểu đồ gốc. Giá trị đưa vào tính bằng phần vạn (97,72% -> 9772) để nhãn in dấu
-// phẩy thập phân bằng mã định dạng 0","00, không phụ thuộc cài đặt vùng của máy chiếu.
+// giá trị nhân 10000 (97,72% -> 9772) để mã 0","00 luôn in dấu phẩy, máy chiếu cài vùng nào cũng vậy
 const VAN = (x) => Math.round(10000 * Number(x));
 const NHAN_PT = '[=0]"";0","00';
 function bieuDo(s, series, o) {
@@ -168,7 +160,7 @@ function muiTen(s, x1, y1, x2, y2, mau = MUTED) {
     line: { color: mau, width: 1.75, endArrowType: "triangle" } });
 }
 
-/* ============================ 1. BÌA ============================ */
+// slide 1: bìa
 {
   n += 1;
   const s = p.addSlide();
@@ -195,7 +187,7 @@ function muiTen(s, x1, y1, x2, y2, mau = MUTED) {
 "Em xin chào thầy và các bạn. Nhóm 09 báo cáo đề tài Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu."`);
 }
 
-/* ======================= 2. BÀI TOÁN ======================= */
+// slide 2: bài toán
 {
   const s = slide("BÀI TOÁN", "Người dân hỏi luật bằng lời thường, và thường gõ không dấu",
 `Khoảng 40 giây.
@@ -233,7 +225,7 @@ Chốt: "Đầu vào là một câu hỏi, đầu ra là danh sách điều lu�
     { x: MX, y: 6.05, w: CW, h: 0.4, fontSize: 15, color: INK2 });
 }
 
-/* ================== 3. NGHIÊN CỨU TRƯỚC ================== */
+// slide 3: nghiên cứu trước
 {
   const s = slide("NGHIÊN CỨU TRƯỚC", "Kết hợp từ khóa và ngữ nghĩa đã là công thức quen thuộc",
 `Khoảng 40 giây. Không đọc hết bảng, chỉ đọc cột phải.
@@ -264,7 +256,7 @@ Nếu thầy hỏi "đọc hết chưa": đối chiếu theo phần tóm tắt, 
     { x: MX, y: 6.05, w: CW, h: 0.35, fontSize: 13, italic: true, color: MUTED });
 }
 
-/* ============ 4. KHOẢNG TRỐNG VÀ CÂU HỎI NGHIÊN CỨU ============ */
+// slide 4: khoảng trống và câu hỏi nghiên cứu
 {
   const s = slide("CÂU HỎI NGHIÊN CỨU", "Chưa ai đo hệ tìm luật chịu được câu mất dấu tới đâu",
 `Khoảng 40 giây. Chỉ tay vào ô đỏ.
@@ -303,7 +295,7 @@ Nếu thầy hỏi "chắc chưa ai làm": chỉ khẳng định trong các ngu�
     { x: rx + 0.3, y: 4.43, w: rw - 0.6, h: 1.3, fontSize: 16, bold: true, valign: "top" });
 }
 
-/* ================= 5. DỮ LIỆU VÀ KIỂM TOÁN ================= */
+// slide 5: dữ liệu và kiểm toán
 {
   const sn = (f) => demDong(path.join(AUDIT, f));
   const nhanDoi = DIA.reduce((a, b) => a + Number(b.so_dieu), 0);
@@ -341,7 +333,7 @@ Nếu thầy hỏi sao không xóa điều trùng: kho luật thật có điều
   tx(s, "Trục ngang thang log", { x: W - MX - 3, y: 6.5, w: 3, h: 0.25, fontSize: 11, italic: true, color: MUTED, align: "right" });
 }
 
-/* ================== 6. NHÃN MÂU THUẪN ================== */
+// slide 6: nhãn mâu thuẫn
 {
   const s = slide("RÒ RỈ DỮ LIỆU", `${CONFLICT.length} trên ${TRUNG_ID} câu hỏi trùng giữa train và test mang nhãn khác nhau`,
 `Khoảng 45 giây. Điểm nhấn của phần kiểm toán.
@@ -373,7 +365,7 @@ Chốt: "Bộ nhãn không đầy đủ, nên mọi Recall trong báo cáo là c
     { x: tx0 + 0.25, y: 5.25, w: W - MX - tx0 - 0.5, h: 0.95, fontSize: 15, color: OK, bold: true, valign: "middle" });
 }
 
-/* ============== 7. MÔ HÌNH ĐÃ THẤY TẬP TEST ============== */
+// slide 7: mô hình đã thấy tập test
 {
   const s = slide("RÒ RỈ DỮ LIỆU", "Mô hình phổ biến nhất đã học chính tập test",
 `Khoảng 45 giây. Phát hiện đáng giá nhất, nói chậm.
@@ -411,7 +403,7 @@ Nếu thầy hỏi sao tin model card: không kiểm chứng trực tiếp đư�
   });
 }
 
-/* ======================= 8. KIẾN TRÚC ======================= */
+// slide 8: kiến trúc
 {
   const s = slide("PHƯƠNG PHÁP", "Một khâu phục hồi dấu đứng trước ba tầng tìm kiếm",
 `Khoảng 45 giây. Đi theo mũi tên từ trái sang phải.
@@ -446,7 +438,7 @@ Nếu thầy hỏi vì sao gộp max: đo trên val, max ${so(gop("max"))}, mean
     { x: 8.85, y: 5.4, w: W - MX - 8.85, h: 0.8, fontSize: 13, color: MUTED, valign: "top" });
 }
 
-/* ======================= 9. CHIA ĐOẠN ======================= */
+// slide 9: chia đoạn
 {
   const s = slide("PHƯƠNG PHÁP", `${so(DODAI.ty_le_vuot_tran_pct, 0)}% điều luật dài hơn giới hạn của mô hình, nên phải chia đoạn`,
 `Khoảng 35 giây.
@@ -480,7 +472,7 @@ Nếu thầy hỏi sao không dùng mô hình ngữ cảnh dài: để hai bộ 
     { x: rx, y: 5.2, w: rw, h: 0.9, fontSize: 13, color: INK2, valign: "top" });
 }
 
-/* ================= 10. CH1: KẾT QUẢ CÂU CÓ DẤU ================= */
+// slide 10: CH1, kết quả câu có dấu
 {
   const s = slide("CH1  ·  CÂU CÓ DẤU", `Trên câu có dấu, hợp nhất chỉ hơn ngữ nghĩa ${so(loiHopR, 2)} điểm Recall@10`,
 `Khoảng 45 giây. Trả lời câu hỏi nghiên cứu 1.
@@ -507,7 +499,7 @@ Nếu thầy hỏi F2 sao thấp: cố định k bằng 10 nên precision tối 
     { x: rx, y: 5.45, w: rw, h: 0.65, fontSize: 12.5, italic: true, color: MUTED, valign: "top" });
 }
 
-/* ================= 11. CH1: BM25 CỨU ĐƯỢC BAO NHIÊU ================= */
+// slide 11: CH1, BM25 cứu được bao nhiêu
 {
   const chiBm = CROSS["chỉ BM25 đúng"], chiDe = CROSS["chỉ ngữ nghĩa đúng"];
   const caHai = CROSS["cả hai đúng"], khongAi = CROSS["cả hai sai"];
@@ -542,7 +534,7 @@ Nếu thầy hỏi ${khongAi} câu cả hai sai: nhóm đọc tay 17 ca hệ lai
   tx(s, "BM25 còn chỉ ra được từ nào đã khớp.", { x: rx, y: 5.6, w: rw, h: 0.5, fontSize: 14, bold: true });
 }
 
-/* =========== 12. CH2: CÂU GÕ KHÔNG DẤU SỤP ĐỔ =========== */
+// slide 12: CH2, câu gõ không dấu sụp đổ
 {
   const heK = [["BM25", "BM25"], ["Ngữ nghĩa", "Ngữ nghĩa"], ["Hợp nhất", "Hợp nhất"]];
   const coDe = kd("có dấu", "giữ nguyên", "Ngữ nghĩa"), khDe = kd("không dấu", "giữ nguyên", "Ngữ nghĩa");
@@ -572,7 +564,7 @@ Nếu thầy hỏi BM25 bỏ dấu giảm do bỏ dấu hay do đổi cách tác
     { x: rx + 0.25, y: 4.75, w: rw - 0.5, h: 1.35, fontSize: 14, color: INK, valign: "middle" });
 }
 
-/* ========= 13. CH2: SỬA BẰNG PHỤC HỒI DẤU ========= */
+// slide 13: CH2, sửa bằng phục hồi dấu
 {
   const coHop = kd("có dấu", "giữ nguyên", "Hợp nhất"), khHop = kd("không dấu", "giữ nguyên", "Hợp nhất");
   const phHop = kd("không dấu", "phục hồi dấu", "Hợp nhất");
@@ -611,7 +603,7 @@ Nếu thầy hỏi sao không dùng mô hình phục hồi dấu có sẵn: chư
   });
 }
 
-/* ========= 14. CH2: SAI Ở ĐÂU, VÀ CÂU GÕ NỬA DẤU ========= */
+// slide 14: CH2, sai ở đâu, và câu gõ nửa dấu
 {
   const saiNhom = KDL["sai ít nhất một âm tiết"], mat = KDL["mất do phục hồi sai"], duoc = KDL["được nhờ phục hồi"];
   const nuaGiu = kd("nửa dấu", "giữ nguyên", "Hợp nhất"), nuaPh = kd("nửa dấu", "phục hồi dấu", "Hợp nhất");
@@ -641,7 +633,7 @@ Câu nửa dấu cũng do máy tạo: mỗi âm tiết bị bỏ dấu với xá
   tx(s, "Recall@10 của hệ hợp nhất (%)", { x: 6.7, y: 6.15, w: 4, h: 0.26, fontSize: 11, italic: true, color: MUTED });
 }
 
-/* ======================= 15. KẾT LUẬN ======================= */
+// slide 15: kết luận
 {
   n += 1;
   const s = p.addSlide();
@@ -675,7 +667,7 @@ Câu nửa dấu cũng do máy tạo: mỗi âm tiết bị bỏ dấu với xá
 "Em xin hết phần trình bày, nhóm xin demo code."`);
 }
 
-/* ===== 16. TÀI LIỆU THAM KHẢO, đọc từ docs/NGHIEN_CUU_LIEN_QUAN.md ===== */
+// slide 16: tài liệu tham khảo
 {
   const md = fs.readFileSync(path.join(ROOT, "docs", "NGHIEN_CUU_LIEN_QUAN.md"), "utf8");
   const phan = md.split(/^## Tài liệu tham khảo\s*$/m)[1] || "";
@@ -696,5 +688,4 @@ if (n !== TONG) throw new Error(`Dựng ${n} slide nhưng TONG = ${TONG}: sửa 
 const OUT = "Nhom09_XLNNTN_BaoCao.pptx";
 p.writeFile({ fileName: OUT }).then(() => {
   console.log(`Đã dựng ${n} slide -> ${OUT}`);
-  console.log("Mọi con số đọc từ reports/, không gõ tay.");
 });

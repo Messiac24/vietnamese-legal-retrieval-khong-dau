@@ -1,16 +1,12 @@
-"""Bước 1: tải, kiểm toán, chia lại tập.
+"""Bước 1: tải dữ liệu, kiểm toán, chia lại tập.
 
-Chạy:
     C:/Python314/python.exe scripts/01_prepare_data.py
 
 Sinh ra:
     data/articles.parquet   điều luật kèm token đã tách và nhóm trùng
     data/queries.parquet    câu hỏi đã khử trùng dòng
     data/qrels.parquet      nhãn đúng kèm cột split (train / val / test)
-    reports/audit/*.csv     sáu tệp bằng chứng kiểm toán
-
-Nguyên tắc: mỗi phép dọn dữ liệu đều để lại bằng chứng kiểm tra được. Không âm
-thầm sửa dữ liệu rồi báo cáo con số đẹp.
+    reports/audit/*.csv     các tệp kết quả kiểm toán
 """
 import sys
 import time
@@ -45,7 +41,7 @@ def main() -> None:
     print(f"\nĐã nạp: {len(arts)} điều luật, {len(qs_raw)} dòng câu hỏi, "
           f"{len(qr_tr)} qrel train, {len(qr_te)} qrel test")
 
-    # ---------- 1. Thống kê corpus ----------
+    # 1. Thống kê corpus
     print("\n[1/6] Thống kê kho điều luật")
     so_tu = arts["text"].str.split().str.len().fillna(0).astype(int)
     stats = pd.DataFrame(
@@ -65,14 +61,14 @@ def main() -> None:
     )
     _ghi(stats, "corpus_stats.csv")
 
-    # ---------- 2. Điều luật rỗng ----------
+    # 2. Điều luật rỗng
     print("\n[2/6] Điều luật có nội dung rỗng")
     rong = arts[arts["text"].str.strip() == ""][["article_id", "doc_id", "title"]]
     print(f"    {len(rong)} điều chỉ còn tiêu đề, không có thân điều "
           f"({100 * len(rong) / len(arts):.2f}%)")
     _ghi(rong, "empty_articles.csv")
 
-    # ---------- 3. Tách từ toàn corpus ----------
+    # 3. Tách từ toàn corpus
     print("\n[3/6] Tách từ 61k điều luật bằng pyvi")
     cu = None
     if config.ARTICLES_PATH.exists():
@@ -92,7 +88,7 @@ def main() -> None:
                       flush=True)
         arts["tokens"] = toks
 
-    # ---------- 4. Trùng lặp điều luật ----------
+    # 4. Trùng lặp điều luật
     print("\n[4/6] Trùng lặp điều luật")
     nhom = audit.exact_duplicate_groups(arts)
     arts["dup_group"] = arts["article_id"].map(nhom)
@@ -129,7 +125,7 @@ def main() -> None:
           f"  |  băng bỏ qua vì quá lớn: {audit.near_duplicate_pairs.bo_qua}")
     _ghi(gan_trung, "near_duplicate_articles.csv")
 
-    # ---------- 5. Kiểm toán câu hỏi ----------
+    # 5. Kiểm toán câu hỏi
     print("\n[5/6] Kiểm toán câu hỏi")
     lap = audit.duplicate_queries(qs_raw)
     xung_dot = int((lap["so_noi_dung_khac_nhau"] > 1).sum()) if len(lap) else 0
@@ -162,7 +158,7 @@ def main() -> None:
     chong_lan["text"] = chong_lan["query_id"].map(dict(zip(qs["query_id"], qs["text"])))
     _ghi(chong_lan, "query_overlap.csv")
 
-    # ---------- 6. Mở rộng gold và chia lại tập ----------
+    # 6. Mở rộng gold và chia lại tập
     print("\n[6/6] Mở rộng gold và chia lại tập")
     nhom_to_ids: dict[str, list[str]] = {}
     for aid, g in zip(arts["article_id"], arts["dup_group"]):
@@ -208,9 +204,7 @@ def main() -> None:
     assert not (tr_ids & ids_te), "train và test giao nhau"
     assert not (va_ids & ids_te), "val và test giao nhau"
 
-    # Tập test giữ NGUYÊN VẸN đúng 793 cặp của ban tổ chức. Các dòng qrel mà
-    # tệp train gán cho 24 câu hỏi chồng lấn bị bỏ hẳn, không nhập vào test:
-    # gộp vào là tự sửa nhãn của tập test bằng phỏng đoán của mình.
+    # test giữ nguyên 793 cặp gốc; nhãn train của 24 câu chồng lấn bỏ đi, không gộp vào test
     phan_test = qr_te.assign(split="test")
     phan_train = qr_tr[qr_tr["query_id"].isin(tr_ids)].assign(split="train")
     phan_val = qr_tr[qr_tr["query_id"].isin(va_ids)].assign(split="val")
@@ -228,7 +222,7 @@ def main() -> None:
     print(phan_bo.to_string(index=False))
     _ghi(phan_bo, "split_distribution.csv")
 
-    # ---------- Ghi dữ liệu ----------
+    # Ghi dữ liệu
     arts.to_parquet(config.ARTICLES_PATH, index=False)
     qs.to_parquet(config.QUERIES_PATH, index=False)
     qrels.to_parquet(config.QRELS_PATH, index=False)

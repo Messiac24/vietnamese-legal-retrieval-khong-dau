@@ -1,18 +1,14 @@
 """Bước 2: chia đoạn và dựng chỉ mục.
 
-Chạy:
     C:/Python314/python.exe scripts/02_build_index.py --model all
     C:/Python314/python.exe scripts/02_build_index.py --model bkai
 
 Sinh ra:
-    data/chunks.parquet          bộ đoạn dùng chung cho mọi bộ mã hóa
+    data/chunks.parquet            bộ đoạn dùng chung cho mọi bộ mã hóa
     data/chunks_segmented.parquet  bản đã tách từ, cho PhoBERT
-    data/index/bm25/             chỉ mục từ khóa
-    data/index/<ten>/            chỉ mục vector
-    reports/eval/index_cost.csv  thời gian và dung lượng từng chỉ mục
-
-Bộ đoạn được cắt MỘT LẦN và dùng chung cho cả hai bộ mã hóa. Nhờ vậy biến duy
-nhất giữa hai lượt chạy là bộ mã hóa, không phải cách chia đoạn.
+    data/index/bm25/               chỉ mục từ khóa
+    data/index/<ten>/              chỉ mục vector
+    reports/eval/index_cost.csv    thời gian và dung lượng từng chỉ mục
 """
 import argparse
 import sys

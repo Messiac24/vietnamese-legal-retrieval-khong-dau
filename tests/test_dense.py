@@ -1,9 +1,4 @@
-"""Kiểm thử tầng ngữ nghĩa.
-
-Các test ở đây cố ý KHÔNG nạp mô hình thật: nạp PhoBERT mất vài giây và cần
-mạng, làm bộ test chậm và giòn. Phần cần kiểm là logic gộp đoạn về điều và phép
-chuẩn hóa vector, chứ không phải chất lượng của mô hình.
-"""
+"""Kiểm thử tầng ngữ nghĩa, không nạp mô hình thật."""
 import numpy as np
 import pytest
 

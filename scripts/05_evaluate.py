@@ -1,18 +1,14 @@
-"""Bước 5: chấm điểm trên tập test, ĐÚNG MỘT LẦN.
+"""Bước 5: chấm trên test với tham số trong chosen_params.json.
 
-Chạy:
     C:/Python314/python.exe scripts/05_evaluate.py
 
 Sinh ra:
-    reports/eval/model_comparison.csv   bảng số chính của đồ án
+    reports/eval/model_comparison.csv   bảng kết quả chính
     reports/eval/gold_sensitivity.csv   gold gốc so với gold mở rộng
-    reports/eval/cost_comparison.csv    độ trễ và dung lượng chỉ mục
     reports/eval/per_query_test.csv     kết quả từng câu hỏi, cho bước 6
-    reports/eval/recall_curve.png       biểu đồ Recall@k
+    reports/eval/best_system.json       hệ sạch tốt nhất
+    reports/eval/recall_curve.png       Recall@k
     reports/eval/alpha_curve.png        đường alpha quét trên val
-
-Mọi tham số lấy từ reports/eval/chosen_params.json, tức là đã chốt trên val
-trước khi script này chạy. Không có vòng lặp nào ở đây chỉnh tham số theo test.
 """
 import json
 import sys
@@ -43,11 +39,7 @@ def _pooling_tot_nhat(ten: str, mac_dinh: str = "max") -> str:
 
 
 def do_do_tre(ham, cau_hoi: list[str], so_lan: int = 60) -> tuple[float, float]:
-    """Đo độ trễ một truy vấn một, đúng cảnh người dùng thật gõ một câu hỏi.
-
-    Không đo theo lô: chạy theo lô cho ra con số đẹp nhưng không phải thứ người
-    dùng cảm nhận được.
-    """
+    """Đo từng truy vấn một, không theo lô, cho giống lúc người dùng gõ một câu."""
     ham(cau_hoi[0])  # làm nóng
     t = []
     for c in cau_hoi[:so_lan]:
@@ -75,7 +67,7 @@ def main() -> None:
     ids = list(text)
     cau_hoi = [text[q] for q in ids]
 
-    # ---------- Tầng từ khóa ----------
+    # Tầng từ khóa
     print("\n[1] BM25")
     idx_bm = lexical.BM25Index(arts, **ts["bm25"])
     toks = {q: textnorm.tokens(text[q]) for q in ids}
@@ -83,7 +75,7 @@ def main() -> None:
     tre_bm = do_do_tre(lambda c: idx_bm.search_tokens(textnorm.tokens(c), 10), cau_hoi)
     print(f"    độ trễ p50 {tre_bm[0]:.1f} ms, p95 {tre_bm[1]:.1f} ms")
 
-    # ---------- Tầng ngữ nghĩa ----------
+    # Tầng ngữ nghĩa
     de_runs: dict[str, dict] = {}
     tre_de: dict[str, tuple[float, float]] = {}
     pooling_dung: dict[str, str] = {}
@@ -109,7 +101,7 @@ def main() -> None:
         print(f"    độ trễ p50 {tre_de[ten][0]:.0f} ms, p95 {tre_de[ten][1]:.0f} ms")
         del idx
 
-    # ---------- Hợp nhất ----------
+    # Hợp nhất
     sach = ts["dense"]["mo_hinh"]
     he_thong: dict[str, dict] = {"BM25": bm_runs}
     for t, r in de_runs.items():
@@ -133,7 +125,7 @@ def main() -> None:
                 return ghi_chu
         return ""
 
-    # ---------- Bảng kết quả ----------
+    # Bảng kết quả
     print("\n[3] Bảng kết quả trên test")
     chi_phi = {}
     cp_path = config.EVAL_DIR / "index_cost.csv"
@@ -173,7 +165,7 @@ def main() -> None:
     bang.to_csv(config.EVAL_DIR / "model_comparison.csv", **config.CSV_KW)
     print(bang.to_string(index=False))
 
-    # ---------- Độ nhạy của gold ----------
+    # Độ nhạy của gold
     print("\n[4] Gold gốc so với gold mở rộng")
     hang = []
     for ten, runs in he_thong.items():
@@ -187,10 +179,9 @@ def main() -> None:
     ds.to_csv(config.EVAL_DIR / "gold_sensitivity.csv", **config.CSV_KW)
     print(ds.to_string(index=False))
 
-    # ---------- Kết quả từng câu hỏi ----------
+    # Kết quả từng câu hỏi
     tieu_de = dict(zip(arts["article_id"], arts["title"]))
-    # Hệ tốt nhất để phân tích lỗi phải là hệ SẠCH. Chọn hệ nhiễm bẩn thì phần
-    # phân tích lỗi cũng bị nhiễm theo.
+    # phân tích lỗi trên hệ sạch tốt nhất
     chi_sach = bang[bang["nhiem_ban"] == ""]
     tot_nhat = chi_sach.sort_values("recall@10", ascending=False).iloc[0]["he_thong"]
     cao_nhat = bang.sort_values("recall@10", ascending=False).iloc[0]["he_thong"]
@@ -210,9 +201,7 @@ def main() -> None:
     pd.DataFrame(hang).to_csv(config.EVAL_DIR / "per_query_test.csv", **config.CSV_KW)
     print(f"    -> reports/eval/per_query_test.csv")
 
-    # Ghi lại lựa chọn để bước 6 dùng đúng hệ này, không tự chọn lại. Bản đầu
-    # tiên để bước 6 tự chọn theo điểm cao nhất, nên nó lọc ca sai theo một hệ
-    # còn cột top10 lại của hệ khác, ra bảng mâu thuẫn.
+    # bước 6 đọc lại tệp này để dùng đúng hệ, không tự chọn
     (config.EVAL_DIR / "best_system.json").write_text(
         json.dumps({"he_sach_tot_nhat": tot_nhat,
                     "he_diem_cao_nhat": cao_nhat,
@@ -222,7 +211,7 @@ def main() -> None:
         encoding="utf-8")
     print("    -> reports/eval/best_system.json")
 
-    # ---------- Biểu đồ ----------
+    # Biểu đồ
     ve_recall(bang)
     ve_alpha()
     print(f"\nTổng thời gian: {(time.perf_counter() - t_bat_dau) / 60:.1f} phút")

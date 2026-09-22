@@ -1,14 +1,7 @@
-"""Tầng ngữ nghĩa: mã hóa đoạn thành vector rồi tìm bằng tích vô hướng.
+"""Tầng ngữ nghĩa: mã hóa đoạn bằng bi-encoder, tìm bằng tích vô hướng.
 
-Hai bộ mã hóa ăn CÙNG một bộ đoạn, chỉ khác khâu tiền xử lý mà kiến trúc của
-chúng đòi hỏi. Nhờ vậy biến duy nhất giữa hai lượt chạy là bộ mã hóa:
-
-    bkai (PhoBERT base)      768 chiều, 256 token, BẮT BUỘC tách từ
-    AITeamVN (XLM-R large)  1024 chiều, cắt ở 512 token, không cần tách từ
-
-Không dùng FAISS. 788 truy vấn nhân với khoảng 150.000 vector 768 chiều là phép
-nhân ma trận nhỏ với GPU, chạy thẳng bằng torch còn nhanh hơn dựng chỉ mục xấp
-xỉ, lại bỏ được một phụ thuộc và không có sai số xấp xỉ.
+bkai (PhoBERT) cần văn bản đã tách từ, AITeamVN (XLM-R) thì không. Không dùng
+FAISS vì 788 truy vấn nhân 150k vector chạy thẳng bằng torch trên GPU vẫn nhanh.
 """
 import json
 from pathlib import Path
@@ -19,14 +12,12 @@ from vlr import textnorm
 
 
 def article_of(chunk_id: str) -> str:
-    """Suy ra article_id từ chunk_id dạng `<article_id>#<n>`."""
     if "#" not in chunk_id:
         raise ValueError(f"chunk_id sai định dạng, thiếu dấu thăng: {chunk_id!r}")
     return chunk_id.rsplit("#", 1)[0]
 
 
 def l2_normalize(x: np.ndarray) -> np.ndarray:
-    """Chuẩn hóa từng hàng về độ dài 1, để tích vô hướng chính là cosine."""
     do_dai = np.linalg.norm(x, axis=1, keepdims=True)
     do_dai[do_dai == 0] = 1.0
     return x / do_dai
@@ -35,13 +26,7 @@ def l2_normalize(x: np.ndarray) -> np.ndarray:
 def pool_chunk_scores(
     chunk_ids, scores, article_of_map: dict[str, str], how: str
 ) -> dict[str, float]:
-    """Gộp điểm của các đoạn về điểm của điều luật.
-
-    `max` là mặc định của đồ án: câu trả lời cho một câu hỏi thường nằm gọn
-    trong một khoản, nên đoạn khớp nhất mới là bằng chứng. Lấy trung bình sẽ để
-    các khoản không liên quan kéo điểm xuống, và điều luật càng dài càng bị
-    thiệt. Cả hai cách đều được đo trên val chứ không chọn bằng cảm tính.
-    """
+    """Gộp điểm đoạn về điều bằng max hoặc mean."""
     if how not in ("max", "mean"):
         raise ValueError(f"how phải là 'max' hoặc 'mean', nhận được {how!r}")
     gom: dict[str, list[float]] = {}
@@ -53,12 +38,11 @@ def pool_chunk_scores(
 
 
 def top_articles(diem: dict[str, float], top_k: int) -> list[tuple[str, float]]:
-    """Xếp điều luật theo điểm giảm dần, cắt ở top_k. Hòa điểm thì xếp theo id."""
+    """Hòa điểm thì xếp theo id cho kết quả ổn định."""
     return sorted(diem.items(), key=lambda x: (-x[1], x[0]))[:top_k]
 
 
 class DenseIndex:
-    """Chỉ mục vector cho một bộ mã hóa."""
 
     def __init__(
         self,
@@ -80,11 +64,7 @@ class DenseIndex:
         self._doan_cua: dict[str, list[int]] | None = None
 
     def doan_khop_nhat(self, query_vec: np.ndarray, article_id: str) -> tuple[str, float] | None:
-        """Đoạn khớp câu hỏi nhất trong một điều luật.
-
-        Với pooling max thì đây đúng là khoản đã quyết định điểm của điều; với
-        pooling mean thì chỉ là khoản khớp nhất, không phải khoản quyết định điểm.
-        """
+        """Đoạn khớp câu hỏi nhất trong một điều. Chỉ là khoản quyết định điểm khi gộp bằng max."""
         if self._doan_cua is None:
             self._doan_cua = {}
             for i, c in enumerate(self.chunk_ids):
@@ -97,12 +77,7 @@ class DenseIndex:
         return self.chunk_ids[vt[j]], float(s[j])
 
     def _load_model(self):
-        """Nạp mô hình một lần, chạy fp16 trên GPU.
-
-        Đo thật trên RTX 5060 Ti với bkai: fp32 batch 128 mất 9,6 phút cho 150k
-        đoạn, fp16 batch 256 chỉ 3,8 phút. Sai khác về điểm cosine ở mức 1e-3,
-        không đổi thứ hạng. VRAM đỉnh 2,57 GB trên 17,1 GB.
-        """
+        """Nạp mô hình một lần. fp16 nhanh gấp khoảng 2,5 lần fp32, cosine lệch cỡ 1e-3."""
         if self._model is None:
             import torch
             from sentence_transformers import SentenceTransformer
@@ -117,19 +92,13 @@ class DenseIndex:
         return self._model
 
     def _prepare(self, texts: list[str]) -> list[str]:
-        """PhoBERT được huấn luyện trên văn bản đã tách từ. Đưa văn bản thô vào
-        thì mỗi âm tiết thành một token lạ và chất lượng tụt hẳn."""
+        """PhoBERT học trên văn bản đã tách từ nên phải tách trước khi mã hóa."""
         return [textnorm.segment(t) for t in texts] if self.need_segment else texts
 
     def encode_corpus(self, chunk_ids: list[str], texts: list[str],
                       batch_size: int = 256,
                       already_segmented: bool = False) -> None:
-        """Mã hóa cả kho đoạn.
-
-        `already_segmented` cho phép phía gọi truyền vào văn bản đã tách từ sẵn.
-        Tách từ 150k đoạn mất hơn 3 phút, mà cả bkai gốc lẫn bkai đã fine-tune
-        đều cần đúng bộ đoạn đã tách đó, nên tách lại lần hai là phí.
-        """
+        """`already_segmented` để dùng lại bản đã tách từ, khỏi tách lại 150k đoạn."""
         model = self._load_model()
         vec = model.encode(
             texts if already_segmented else self._prepare(texts),
@@ -157,13 +126,8 @@ class DenseIndex:
         self, query_vecs: np.ndarray, top_k: int, pooling: str = "max",
         chunk_top: int = 500, block: int = 50_000,
     ) -> list[list[tuple[str, float]]]:
-        """Tìm top_k điều luật cho từng truy vấn.
-
-        Lấy `chunk_top` đoạn tốt nhất rồi mới gộp về điều, thay vì gộp trên toàn
-        bộ 150k đoạn: một điều chỉ vào được top-k khi có ít nhất một đoạn lọt
-        vào `chunk_top`, nên kết quả không đổi mà rẻ hơn nhiều.
-
-        Nhân theo lô `block` vector để không nạp cả ma trận lên GPU cùng lúc.
+        """Lấy `chunk_top` đoạn tốt nhất rồi mới gộp về điều. Nhân theo lô `block` để không
+        đưa cả ma trận lên GPU một lần.
         """
         import torch
 

@@ -2,14 +2,9 @@
 
 Đề tài: **Tìm kiếm điều luật tiếng Việt cho câu hỏi gõ thiếu dấu (kết hợp từ khóa và ngữ nghĩa, phục hồi dấu bằng mô hình ngôn ngữ, kiểm toán rò rỉ dữ liệu ở cả bộ dữ liệu lẫn mô hình tiền huấn luyện).**
 
-Tên tiếng Anh: *Vietnamese Statutory Article Retrieval for Diacritic-free Queries:
-Diacritic Restoration, Hybrid Retrieval and Leakage Audit.*
-
-Tệp này là nguồn gốc cho phần nghiên cứu trước ở slide, kịch bản Word, artifact và
-README. Slide đọc thẳng danh sách tài liệu tham khảo từ đây. Mọi nguồn đã được mở
-và đối chiếu ngày 15/9/2026. Với bài báo, nhóm đối chiếu theo phần tóm tắt và mã
-nguồn công bố; nhận định "không báo cáo" nghĩa là không thấy trong những phần đó,
-không phải đã đọc hết toàn văn.
+Các nguồn được mở và đối chiếu ngày 15/9/2026. Với bài báo, nhóm đọc phần tóm tắt
+và mã nguồn công bố, không đọc hết toàn văn, nên "không báo cáo" ở dưới nghĩa là
+không thấy trong những phần đó.
 
 ## 1. Năm hướng đã có
 

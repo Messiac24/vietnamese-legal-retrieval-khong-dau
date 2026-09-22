@@ -1,10 +1,4 @@
-"""Tầng từ khóa: chỉ mục BM25 trên điều luật đã tách từ.
-
-Lập chỉ mục ở mức ĐIỀU LUẬT chứ không chia đoạn, khác với tầng ngữ nghĩa. Lý do:
-BM25 đã có sẵn cơ chế chuẩn hóa theo độ dài văn bản qua tham số `b`, nên điều
-dài không tự động được điểm cao hơn. Bi-encoder thì không có cơ chế đó, lại còn
-bị chặn cứng ở 256 token, nên bắt buộc phải chia đoạn.
-"""
+"""Tầng từ khóa: BM25 trên nguyên điều luật đã tách từ, không chia đoạn."""
 import json
 from pathlib import Path
 
@@ -15,7 +9,7 @@ from vlr import textnorm
 
 
 class BM25Index:
-    """Bọc `bm25s.BM25` để làm việc theo article_id thay vì chỉ số hàng."""
+    """Bọc bm25s.BM25 để làm việc theo article_id."""
 
     def __init__(self, articles: pd.DataFrame, k1: float, b: float):
         self.k1 = k1
@@ -33,11 +27,10 @@ class BM25Index:
         self._model.index(kho, show_progress=False)
 
     def search(self, query: str, top_k: int) -> list[tuple[str, float]]:
-        """Trả về [(article_id, điểm)] xếp giảm dần."""
         return self.search_tokens(textnorm.tokens(query), top_k)
 
     def search_tokens(self, toks: list[str], top_k: int) -> list[tuple[str, float]]:
-        """Như `search` nhưng nhận sẵn token, tránh tách từ lại nhiều lần."""
+        """Nhận sẵn token, khỏi tách từ lại."""
         if not toks:
             return []
         k = min(top_k, len(self.article_ids))

@@ -1,4 +1,4 @@
-"""Kiểm thử chia tập. Điểm quan trọng nhất: chạy lại phải ra kết quả y hệt."""
+"""Kiểm thử chia tập."""
 import random
 
 from vlr import splitting
