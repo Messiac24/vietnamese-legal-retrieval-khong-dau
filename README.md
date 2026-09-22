@@ -1,4 +1,4 @@
-# Truy hồi điều luật tiếng Việt cho câu hỏi gõ không dấu
+# Truy hồi điều luật tiếng Việt cho câu hỏi gõ thiếu dấu
 
 Phục hồi dấu, truy hồi lai và kiểm toán rò rỉ dữ liệu, trên 61.425 điều luật Việt Nam.
 
